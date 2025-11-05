@@ -13,9 +13,9 @@ const SourcesList = ({ sources }) => {
         {sources.map((source, index) => (
           <div
             key={source.id}
-            className="flex items-start gap-2 p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs hover:bg-gray-100 transition"
+            className="flex items-start gap-2 p-2.5 bg-gradient-to-br from-gray-50 to-primary-50/30 border border-gray-200 rounded-lg text-xs hover:border-primary-300 hover:shadow-sm transition-all"
           >
-            <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-xs font-medium">
+            <span className="flex-shrink-0 w-5 h-5 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 text-white flex items-center justify-center text-xs font-medium shadow-sm">
               {index + 1}
             </span>
             <div className="flex-1 min-w-0">
@@ -23,12 +23,12 @@ const SourcesList = ({ sources }) => {
                 {source.title}
               </p>
               <div className="flex items-center gap-2 mt-1">
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-white rounded-md text-gray-600">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-secondary-100 to-secondary-50 border border-secondary-200 rounded-md text-secondary-800 font-medium">
                   <Tag className="w-3 h-3" />
                   {source.category}
                 </span>
-                <span className="text-gray-500">
-                  Relevância: {(source.score * 100).toFixed(0)}%
+                <span className="text-primary-600 font-medium">
+                  {(source.score * 100).toFixed(0)}% relevante
                 </span>
               </div>
             </div>
