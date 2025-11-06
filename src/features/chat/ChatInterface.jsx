@@ -39,16 +39,31 @@ const ChatInterface = ({ onClearMessages }) => {
         ref={containerRef}
         className="flex-1 overflow-y-auto px-4 py-6"
       >
-        <div className="max-w-4xl mx-auto space-y-6">
+        <div className="max-w-4xl mx-auto space-y-8">
           {messages.length === 0 ? (
             <EmptyState onSuggestionClick={sendMessage} />
           ) : (
             <>
-              {messages.map((message) => (
-                <ChatMessage key={message.id} message={message} />
-              ))}
+              {messages.map((message, index) => {
+                // Detectar se é a última mensagem do assistente e está streamando
+                const isLastAssistantMessage =
+                  index === messages.length - 1 &&
+                  message.type === 'assistant';
+                const isStreamingMessage = isLoading && isLastAssistantMessage;
 
-              {isLoading && <LoadingIndicator />}
+                return (
+                  <ChatMessage
+                    key={message.id}
+                    message={message}
+                    isStreaming={isStreamingMessage}
+                  />
+                );
+              })}
+
+              {isLoading && messages.length > 0 && messages[messages.length - 1]?.type !== 'assistant' && (
+                <LoadingIndicator />
+              )}
+              {isLoading && messages.length === 0 && <LoadingIndicator />}
             </>
           )}
 

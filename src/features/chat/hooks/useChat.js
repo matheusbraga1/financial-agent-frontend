@@ -42,27 +42,29 @@ export const useChat = (useStreaming = true) => {
       const userMessage = createUserMessage(question);
       addMessage(userMessage);
 
-      const assistantMessage = createAssistantMessage();
-      const assistantId = addMessage(assistantMessage);
-
       setIsLoading(true);
       setError(null);
 
+      // Referência para armazenar o ID da mensagem do assistente
+      let assistantId = null;
+
       try {
         if (useStreaming) {
-          await handleStreamingResponse(assistantId, question);
+          assistantId = await handleStreamingResponse(question);
         } else {
+          const assistantMessage = createAssistantMessage();
+          assistantId = addMessage(assistantMessage);
           await handleNormalResponse(assistantId, question);
         }
       } catch (err) {
         if (err.name === 'AbortError') {
-          removeMessage(assistantId);
+          if (assistantId) removeMessage(assistantId);
           return;
         }
 
         console.error('Erro ao enviar mensagem:', err);
         setError(err?.message || 'Erro ao enviar mensagem');
-        removeMessage(assistantId);
+        if (assistantId) removeMessage(assistantId);
       } finally {
         setIsLoading(false);
       }
@@ -70,13 +72,20 @@ export const useChat = (useStreaming = true) => {
     [useStreaming, addMessage, updateMessage, removeMessage]
   );
 
-  const handleStreamingResponse = async (assistantId, question) => {
+  const handleStreamingResponse = async (question) => {
     let contentBuffer = '';
+    let assistantId = null;
 
     await chatService.sendMessageStream(
       question,
       sessionIdRef.current,
       (data) => {
+        // Criar mensagem do assistente apenas no primeiro token
+        if (!assistantId && (data?.type === 'token' || data?.type === 'sources' || data?.type === 'metadata')) {
+          const assistantMessage = createAssistantMessage();
+          assistantId = addMessage(assistantMessage);
+        }
+
         if (data?.type === 'sources') {
           updateMessage(assistantId, {
             sources: Array.isArray(data.sources) ? data.sources : [],
@@ -92,11 +101,13 @@ export const useChat = (useStreaming = true) => {
         throw err;
       },
       () => {
-        if (contentBuffer) {
+        if (contentBuffer && assistantId) {
           updateMessage(assistantId, { content: contentBuffer });
         }
       }
     );
+
+    return assistantId;
   };
 
   const handleNormalResponse = async (assistantId, question) => {

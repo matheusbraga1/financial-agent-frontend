@@ -33,13 +33,37 @@ class ChatService {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        let errorMessage = `Erro ${response.status}: ${response.statusText}`;
+        
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.detail || errorMessage;
+        } catch {
+          // Se não for JSON, usar mensagem padrão
+        }
+        
+        throw new Error(errorMessage);
       }
 
       await this._processStream(response, onMessage, onComplete);
     } catch (error) {
       console.error('Erro no streaming:', error);
-      onError?.(handleApiError(error));
+      
+      // NOVO: Mensagens de erro mais amigáveis
+      let friendlyMessage = 'Erro ao conectar com o servidor';
+      
+      if (error.name === 'AbortError') {
+        friendlyMessage = 'Tempo limite excedido. Tente novamente.';
+      } else if (error.message.includes('Failed to fetch')) {
+        friendlyMessage = 'Sem conexão com o servidor. Verifique sua internet.';
+      } else if (error.message.includes('500')) {
+        friendlyMessage = 'Erro interno do servidor. Nossa equipe foi notificada.';
+      } else if (error.message.includes('429')) {
+        friendlyMessage = 'Muitas requisições. Aguarde alguns segundos.';
+      }
+      
+      onError?.(new Error(friendlyMessage));
     } finally {
       clearTimeout(timeoutId);
       controller.abort();
