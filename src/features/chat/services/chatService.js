@@ -6,9 +6,9 @@ import { STREAM_TIMEOUT } from '../../../constants/apiConstants';
 class ChatService {
   async sendMessage(question, sessionId = null) {
     try {
-      const response = await apiClient.post('/chat/chat', {
+      const response = await apiClient.post('/chat', {
         question,
-        sessionId
+        session_id: sessionId // Backend espera snake_case
       });
       return response.data;
     } catch (error) {
@@ -17,18 +17,31 @@ class ChatService {
   }
 
   async sendMessageStream(question, sessionId, onMessage, onError, onComplete) {
-    const url = `${config.apiUrl}/chat/chat/stream`;
+    const url = `${config.apiUrl}/chat/stream`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), STREAM_TIMEOUT);
 
     try {
+      // Busca o token para incluir no fetch direto
+      const token = localStorage.getItem('auth_token');
+
+      const headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'text/event-stream'
+      };
+
+      // Adiciona token se existir (para persistir conversas)
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const response = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'text/event-stream'
-        },
-        body: JSON.stringify({ question, sessionId }),
+        headers,
+        body: JSON.stringify({
+          question,
+          session_id: sessionId // Backend espera snake_case
+        }),
         signal: controller.signal
       });
 
@@ -124,6 +137,37 @@ class ChatService {
   async healthCheck() {
     try {
       const response = await apiClient.get('/chat/health');
+      return response.data;
+    } catch (error) {
+      throw handleApiError(error);
+    }
+  }
+
+  /**
+   * Busca histórico de conversas (requer autenticação)
+   * @param {string} sessionId - ID da sessão
+   * @param {number} limit - Limite de mensagens (padrão: 100)
+   */
+  async getChatHistory(sessionId, limit = 100) {
+    try {
+      const response = await apiClient.get('/chat/history', {
+        params: {
+          session_id: sessionId,
+          limit
+        }
+      });
+      return response.data;
+    } catch (error) {
+      throw handleApiError(error);
+    }
+  }
+
+  /**
+   * Busca informações sobre modelos disponíveis
+   */
+  async getModels() {
+    try {
+      const response = await apiClient.get('/chat/models');
       return response.data;
     } catch (error) {
       throw handleApiError(error);

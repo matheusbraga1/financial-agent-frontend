@@ -1,66 +1,119 @@
-import { useState, useRef } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import Sidebar from './components/layout/Sidebar';
-import MobileHeader from './components/layout/MobileHeader';
-import ChatInterface from './features/chat/ChatInterface';
 import { ErrorBoundary } from './components/common';
+import { AuthProvider } from './contexts/AuthContext';
+import ProtectedRoute from './components/auth/ProtectedRoute';
+import PublicRoute from './components/auth/PublicRoute';
+
+// Pages
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Dashboard from './pages/Dashboard';
+import Chat from './pages/Chat';
 
 function App() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const clearMessagesRef = useRef(null);
-
-  const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
-
-  const handleNewConversation = () => {
-    if (clearMessagesRef.current) {
-      clearMessagesRef.current();
-    }
-  };
-
   return (
     <ErrorBoundary showDetails={import.meta.env.DEV}>
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 3000,
-          style: {
-            background: '#fff',
-            color: '#1f2937',
-            padding: '12px 16px',
-            borderRadius: '8px',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-          },
-          success: {
-            iconTheme: {
-              primary: '#00884f',
-              secondary: '#fff',
-            },
-          },
-        }}
-      />
-      <div className="h-screen flex overflow-hidden bg-neutral-50 dark:bg-dark-bg">
-        {/* Sidebar */}
-        <Sidebar
-          isMobileOpen={isSidebarOpen}
-          onToggleMobile={toggleSidebar}
-          onNewConversation={handleNewConversation}
-        />
-
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Header Mobile */}
-          <MobileHeader onToggleSidebar={toggleSidebar} />
-
-          {/* Chat Interface */}
-          <ChatInterface
-            onClearMessages={(clearFn) => {
-              clearMessagesRef.current = clearFn;
+      <Router>
+        <AuthProvider>
+          {/* Toast notifications */}
+          <Toaster
+            position="top-center"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                borderRadius: '10px',
+                padding: '14px 18px',
+                fontSize: '14px',
+                maxWidth: '500px',
+              },
+              // Success toast
+              success: {
+                iconTheme: {
+                  primary: '#00884f',
+                  secondary: '#fff',
+                },
+                style: {
+                  background: '#f0fdf4',
+                  color: '#166534',
+                  border: '1px solid #86efac',
+                },
+                className: 'dark:!bg-green-900/30 dark:!text-green-200 dark:!border-green-700',
+              },
+              // Error toast
+              error: {
+                iconTheme: {
+                  primary: '#dc2626',
+                  secondary: '#fff',
+                },
+                style: {
+                  background: '#fef2f2',
+                  color: '#991b1b',
+                  border: '1px solid #fca5a5',
+                },
+                className: 'dark:!bg-red-900/30 dark:!text-red-200 dark:!border-red-700',
+                duration: 5000,
+              },
+              // Loading toast
+              loading: {
+                iconTheme: {
+                  primary: '#00884f',
+                  secondary: '#fff',
+                },
+                style: {
+                  background: '#f9fafb',
+                  color: '#374151',
+                  border: '1px solid #e5e7eb',
+                },
+                className: 'dark:!bg-gray-800 dark:!text-gray-200 dark:!border-gray-700',
+              },
             }}
           />
-        </div>
-      </div>
+
+          {/* Rotas da aplicação */}
+          <Routes>
+            {/* Rota raiz - redireciona para chat (público) */}
+            <Route path="/" element={<Navigate to="/chat" replace />} />
+
+            {/* Rotas públicas (redireciona para dashboard se já autenticado) */}
+            <Route
+              path="/login"
+              element={
+                <PublicRoute>
+                  <Login />
+                </PublicRoute>
+              }
+            />
+            <Route
+              path="/register"
+              element={
+                <PublicRoute>
+                  <Register />
+                </PublicRoute>
+              }
+            />
+
+            {/* Rotas protegidas (requerem autenticação) */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Chat público - funciona com ou sem autenticação */}
+            {/* Conversas são persistidas apenas para usuários autenticados */}
+            <Route path="/chat" element={<Chat />} />
+
+            {/* Rota 404 - Redireciona para chat */}
+            <Route path="*" element={<Navigate to="/chat" replace />} />
+          </Routes>
+        </AuthProvider>
+      </Router>
     </ErrorBoundary>
   );
 }
 
-export default App
+export default App;
