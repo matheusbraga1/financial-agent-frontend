@@ -47,7 +47,7 @@ const Chat = () => {
   }, [location, handleNewConversation]);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-dark-bg">
+    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-primary-50 via-white to-primary-50 dark:from-dark-bg dark:via-dark-card dark:to-dark-bg">
       {/* Sidebar */}
       <Sidebar 
         isOpen={isSidebarOpen} 
