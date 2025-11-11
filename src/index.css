@@ -68,3 +68,220 @@ code {
 .animate-blink {
   animation: blink 1s infinite;
 }
+
+/* Transição suave para largura do sidebar */
+aside {
+  transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Fade in/out para conteúdo do sidebar */
+.sidebar-content-enter {
+  opacity: 0;
+  transform: translateX(-10px);
+}
+
+.sidebar-content-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 200ms ease-in, transform 200ms ease-in;
+}
+
+.sidebar-content-exit {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.sidebar-content-exit-active {
+  opacity: 0;
+  transform: translateX(-10px);
+  transition: opacity 150ms ease-out, transform 150ms ease-out;
+}
+
+/* Animação de tooltip */
+@keyframes tooltip-in {
+  from {
+    opacity: 0;
+    transform: translateX(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.tooltip-hover:hover::after {
+  animation: tooltip-in 200ms ease-out;
+}
+
+/* Pulso suave para indicadores */
+@keyframes pulse-soft {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Hover suave para botões */
+.sidebar-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar-button::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.1;
+  transform: translate(-50%, -50%);
+  transition: width 0.4s ease, height 0.4s ease;
+}
+
+.sidebar-button:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+/* Transição suave para theme toggle */
+.theme-toggle-transition {
+  transition: background-color 300ms ease, transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Backdrop blur para overlay mobile */
+.backdrop-blur-soft {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* Animação de entrada para mobile sidebar */
+@keyframes slide-in-left {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-out-left {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+}
+
+.mobile-sidebar-enter {
+  animation: slide-in-left 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mobile-sidebar-exit {
+  animation: slide-out-left 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Efeito de elevação em cards */
+.card-elevation {
+  transition: transform 200ms ease, box-shadow 200ms ease;
+}
+
+.card-elevation:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px -4px rgba(0, 0, 0, 0.1);
+}
+
+/* Scrollbar customizada para sidebar */
+.sidebar-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.dark .sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dark .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Animação de brilho sutil em elementos ativos */
+@keyframes subtle-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(0, 136, 79, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(0, 136, 79, 0.1);
+  }
+}
+
+.active-glow {
+  animation: subtle-glow 2s ease-in-out infinite;
+}
+
+/* Transição suave para mudança de tema */
+* {
+  transition-property: background-color, border-color, color;
+  transition-duration: 200ms;
+  transition-timing-function: ease-in-out;
+}
+
+/* Exceções para elementos que não devem ter transição de tema */
+*:is(input, textarea, select, button, [role="button"]) {
+  transition-property: all;
+}
+
+/* Focus visible melhorado para acessibilidade */
+*:focus-visible {
+  outline: 2px solid #00884f;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.dark *:focus-visible {
+  outline-color: #66c39f;
+}
+
+/* ============================================
+   RESPONSIVIDADE E TOUCH GESTURES
+   ============================================ */
+
+/* Área de toque maior para mobile */
+@media (max-width: 1024px) {
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Remover hover effects em dispositivos touch */
+@media (hover: none) {
+  .sidebar-button:hover::before {
+    display: none;
+  }
+}

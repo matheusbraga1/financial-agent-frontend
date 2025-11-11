@@ -3,15 +3,15 @@ import { Link, useLocation } from 'react-router-dom';
 import { AlertCircle, LogIn, UserPlus } from 'lucide-react';
 import Sidebar from '../components/layout/Sidebar/Sidebar';
 import MobileHeader from '../components/layout/MobileHeader/MobileHeader';
-import Header from '../components/layout/Header/Header';
 import ChatInterface from '../features/chat/ChatInterface';
 import { useAuth } from '../contexts/AuthContext';
+import { ThemeToggle } from '../components/common';
 
 /**
- * Página de chat principal
- * - Funciona com ou sem autenticação
- * - Histórico de conversas para usuários autenticados
- * - Sessões não autenticadas não são persistidas
+ * Página de Chat - Layout Atualizado
+ * - Sidebar integrado com navegação
+ * - Sem navbar redundante
+ * - Design limpo e responsivo
  */
 const Chat = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -21,50 +21,33 @@ const Chat = () => {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
 
-  /**
-   * Inicia uma nova conversa
-   */
   const handleNewConversation = useCallback(() => {
     setCurrentSessionId(null);
     setForceNewConversation(true);
-
-    // Reset do flag após componente reagir
-    // FIX: Usar requestAnimationFrame ao invés de setTimeout para evitar memory leak
     requestAnimationFrame(() => {
       setForceNewConversation(false);
     });
   }, []);
 
-  /**
-   * Seleciona uma sessão do histórico
-   */
   const handleSelectSession = useCallback((sessionId) => {
     setCurrentSessionId(sessionId);
   }, []);
 
-  /**
-   * Callback quando uma nova mensagem cria uma sessão
-   */
   const handleSessionCreated = useCallback((sessionId) => {
     if (sessionId && sessionId !== currentSessionId) {
       setCurrentSessionId(sessionId);
     }
   }, [currentSessionId]);
 
- /**
-   * Detecta se deve criar nova conversa ao navegar para /chat
-   */
   useEffect(() => {
     if (location.state?.newConversation) {
       handleNewConversation();
-      
-      // Limpa o state para não repetir ao recarregar
       window.history.replaceState({}, document.title);
     }
   }, [location, handleNewConversation]);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
+    <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-dark-bg">
       {/* Sidebar */}
       <Sidebar 
         isOpen={isSidebarOpen} 
@@ -76,40 +59,42 @@ const Chat = () => {
 
       {/* Conteúdo principal */}
       <div className="flex-1 flex flex-col h-full overflow-hidden">
-        {/* Header mobile */}
+        {/* Header mobile apenas */}
         <MobileHeader onToggleSidebar={() => setIsSidebarOpen(true)} />
-        {/* Header desktop */}
-        <Header />
 
-        {/* Banner informativo para usuários não autenticados - Responsivo */}
+        {/* Theme Toggle - Desktop (canto superior direito) */}
+        <div className="hidden lg:block absolute top-4 right-6 z-20">
+          <ThemeToggle />
+        </div>
+
+        {/* Banner para usuários não autenticados */}
         {!isAuthenticated && (
           <div className="bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800">
-            <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2.5 sm:py-3">
-              {/* Mobile: Stack vertical */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-3">
+            <div className="max-w-7xl mx-auto px-4 py-3">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 {/* Mensagem */}
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600 dark:text-yellow-500 flex-shrink-0" />
-                  <p className="text-xs sm:text-sm text-yellow-800 dark:text-yellow-200 leading-snug">
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-500 flex-shrink-0" />
+                  <p className="text-sm text-yellow-800 dark:text-yellow-200">
                     Você está usando o chat sem login. Suas conversas{' '}
                     <span className="font-semibold">não serão salvas</span>.
                   </p>
                 </div>
 
-                {/* Botões - Responsivos */}
+                {/* Botões */}
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <Link
                     to="/login"
-                    className="inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-medium text-yellow-800 dark:text-yellow-200 hover:bg-yellow-100 dark:hover:bg-yellow-900/40 rounded-md transition-colors whitespace-nowrap"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-yellow-800 dark:text-yellow-200 hover:bg-yellow-100 dark:hover:bg-yellow-900/40 rounded-md transition-colors"
                   >
-                    <LogIn className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    <span className="hidden xs:inline">Fazer </span>Login
+                    <LogIn className="w-4 h-4" />
+                    Login
                   </Link>
                   <Link
                     to="/register"
-                    className="inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-medium bg-yellow-600 hover:bg-yellow-700 text-white rounded-md transition-colors whitespace-nowrap"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-yellow-600 hover:bg-yellow-700 text-white rounded-md transition-colors"
                   >
-                    <UserPlus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    <UserPlus className="w-4 h-4" />
                     Criar Conta
                   </Link>
                 </div>
