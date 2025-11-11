@@ -6,6 +6,7 @@ export const createUserMessage = (content) => ({
   type: MESSAGE_TYPES.USER,
   content,
   timestamp: new Date(),
+  messageId: null,
 });
 
 export const createAssistantMessage = () => ({
@@ -15,4 +16,6 @@ export const createAssistantMessage = () => ({
   sources: [],
   timestamp: new Date(),
   modelUsed: '',
+  messageId: null,
+  confidence: null,
 });

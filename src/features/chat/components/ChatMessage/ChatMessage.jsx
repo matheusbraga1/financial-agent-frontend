@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Bot, User, Copy, Check } from 'lucide-react';
+﻿import { useState, useEffect, useRef } from 'react';
+import { Bot, User, Copy, Check, ThumbsUp, ThumbsDown, MessageCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import ReactMarkdown from 'react-markdown';
@@ -10,15 +10,36 @@ import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import SourcesList from '../SourcesList';
 import { MESSAGE_TYPES, AGENT_NAME } from '../../constants/chatConstants';
 
-const ChatMessage = ({ message, isStreaming = false }) => {
+const ChatMessage = ({ message, isStreaming = false, onFeedback, feedbackState }) => {
   const isUser = message?.type === MESSAGE_TYPES.USER;
   const [copied, setCopied] = useState(false);
+  const [isCommentOpen, setIsCommentOpen] = useState(false);
+  const [commentText, setCommentText] = useState('');
+  const [commentTone, setCommentTone] = useState('negative');
+  const copyTimeoutRef = useRef(null);
+
+  // FIX: Cleanup de timeout ao desmontar componente
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(message?.content || '');
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+
+      // FIX: Limpar timeout anterior e armazenar referência
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+      copyTimeoutRef.current = setTimeout(() => {
+        setCopied(false);
+        copyTimeoutRef.current = null;
+      }, 2000);
     } catch (err) {
       console.error('Erro ao copiar:', err);
     }
@@ -41,11 +62,11 @@ const ChatMessage = ({ message, isStreaming = false }) => {
 
     let processed = text;
 
-    // Detectar se já tem quebras de linha adequadas
+    // Detectar se jÃ¡ tem quebras de linha adequadas
     const hasLineBreaks = text.includes('\n');
 
     if (!hasLineBreaks) {
-      // Se não tem quebras de linha, adicionar onde necessário
+      // Se nÃ£o tem quebras de linha, adicionar onde necessÃ¡rio
 
       // Adicionar quebra de linha antes e depois de headings (##, ###, etc)
       processed = processed.replace(/(#{1,6}\s)/g, '\n\n$1');
@@ -54,7 +75,7 @@ const ChatMessage = ({ message, isStreaming = false }) => {
       // Adicionar quebra antes de listas numeradas
       processed = processed.replace(/([.!?:])\s+(\d+\.\s)/g, '$1\n\n$2');
 
-      // Adicionar quebra antes de listas não ordenadas (•)
+      // Adicionar quebra antes de listas nÃ£o ordenadas (â€¢)
       processed = processed.replace(/([.!?:])\s+(•\s)/g, '$1\n\n$2');
 
       // Adicionar quebra antes de blockquotes (>)
@@ -65,7 +86,7 @@ const ChatMessage = ({ message, isStreaming = false }) => {
       processed = processed.replace(/(---)/g, '$1\n\n');
     }
 
-    // Sempre limpar múltiplas quebras consecutivas
+    // Sempre limpar mÃºltiplas quebras consecutivas
     processed = processed.replace(/\n{3,}/g, '\n\n');
 
     return processed.trim();
@@ -209,7 +230,19 @@ const ChatMessage = ({ message, isStreaming = false }) => {
     );
   };
 
-  // Mensagem do usuário - com balão
+  const handleFeedbackClick = async (value) => {
+    if (!message?.messageId || !onFeedback) return;
+    await onFeedback(message.messageId, value);
+  };
+
+  const handleCommentSubmit = async () => {
+    if (!commentText?.trim() || !message?.messageId || !onFeedback) return;
+    await onFeedback(message.messageId, commentTone, commentText.trim());
+    setCommentText('');
+    setIsCommentOpen(false);
+  };
+
+  // Mensagem do usuÃ¡rio - com balÃ£o
   if (isUser) {
     return (
       <div className="group flex justify-end animate-fade-in">
@@ -224,12 +257,12 @@ const ChatMessage = ({ message, isStreaming = false }) => {
             )}
           </div>
 
-          {/* Conteúdo */}
+          {/* ConteÃºdo */}
           <div className="max-w-none break-words">
             {renderMarkdownContent(message?.content)}
           </div>
 
-          {/* Botão Copy */}
+          {/* BotÃ£o Copy */}
           <button
             onClick={handleCopy}
             className="absolute top-2 right-2 p-1.5 rounded-md transition-all opacity-0 group-hover:opacity-100 bg-primary-700 hover:bg-primary-800"
@@ -247,33 +280,29 @@ const ChatMessage = ({ message, isStreaming = false }) => {
     );
   }
 
-  // Mensagem do agente - sem balão, estilo Claude
+    // Mensagem do agente - sem balão, estilo Claude
   return (
     <div className="group flex justify-start animate-fade-in w-full">
       <div className="w-full max-w-3xl">
-        {/* Header: Avatar + Agent Name + Timestamp */}
         <div className="flex items-center gap-2 mb-3 text-xs text-gray-500 dark:text-gray-400">
           <Bot className="w-4 h-4" />
           <span className="font-medium">{AGENT_NAME}</span>
           {message?.timestamp && (
             <>
-              <span>•</span>
+              <span>&bull;</span>
               <span>{formatTimestamp(message.timestamp)}</span>
             </>
           )}
         </div>
 
-        {/* Conteúdo sem balão */}
         <div className="relative">
           <div className="max-w-none break-words text-gray-900 dark:text-gray-100">
             {renderMarkdownContent(message?.content)}
-            {/* Cursor piscando durante streaming */}
             {isStreaming && message?.content && (
               <span className="inline-block w-1.5 h-5 bg-primary-600 dark:bg-primary-500 ml-0.5 animate-blink align-middle" />
             )}
           </div>
 
-          {/* Botão Copy */}
           <button
             onClick={handleCopy}
             className="absolute -left-8 top-0 p-1.5 rounded-md transition-all opacity-0 group-hover:opacity-100 bg-gray-100 dark:bg-dark-hover hover:bg-gray-200 dark:hover:bg-primary-900/30"
@@ -288,13 +317,152 @@ const ChatMessage = ({ message, isStreaming = false }) => {
           </button>
         </div>
 
-        {/* Sources */}
-        {message?.sources?.length > 0 && (
-          <SourcesList sources={message.sources} />
+        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+          {message?.modelUsed && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-gray-100 dark:bg-dark-hover">
+              Modelo:
+              <strong className="font-semibold">{message.modelUsed}</strong>
+            </span>
+          )}
+          {typeof message?.confidence === 'number' && (
+            <span className="inline-flex items-center gap-1">
+              Confiança:
+              <strong className="font-semibold">
+                {(message.confidence * 100).toFixed(0)}%
+              </strong>
+            </span>
+          )}
+          {message?.timestamp && (
+            <span className="inline-flex items-center gap-1">
+              Atualizado {formatTimestamp(message.timestamp)}
+            </span>
+          )}
+        </div>
+
+        {message?.sources?.length > 0 && <SourcesList sources={message.sources} />}
+
+        {message?.messageId && onFeedback && (
+          <div className="mt-4 border border-gray-200 dark:border-dark-border rounded-lg px-4 py-3 bg-white dark:bg-dark-card">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                Essa resposta foi util?
+              </p>
+              {feedbackState?.submitted && (
+                <span className="text-xs text-primary-600 dark:text-primary-400 font-semibold">
+                  Obrigado pelo feedback!
+                </span>
+              )}
+              {feedbackState?.error && (
+                <span className="text-xs text-red-600 dark:text-red-400">
+                  {feedbackState.error}
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={feedbackState?.submitting}
+                onClick={() => handleFeedbackClick('positive')}
+                className={`px-3 py-1.5 rounded-md border flex items-center gap-1 text-sm transition-colors ${
+                  feedbackState?.value === 'positive'
+                    ? 'border-green-500 text-green-600 bg-green-50 dark:bg-green-900/20'
+                    : 'border-gray-200 text-gray-600 dark:text-gray-300 hover:border-green-300'
+                }`}
+              >
+                <ThumbsUp className="w-4 h-4" />
+                Útil
+              </button>
+
+              <button
+                type="button"
+                disabled={feedbackState?.submitting}
+                onClick={() => handleFeedbackClick('negative')}
+                className={`px-3 py-1.5 rounded-md border flex items-center gap-1 text-sm transition-colors ${
+                  feedbackState?.value === 'negative'
+                    ? 'border-red-500 text-red-600 bg-red-50 dark:bg-red-900/20'
+                    : 'border-gray-200 text-gray-600 dark:text-gray-300 hover:border-red-300'
+                }`}
+              >
+                <ThumbsDown className="w-4 h-4" />
+                Melhorar
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsCommentOpen((prev) => !prev)}
+                className="ml-auto text-xs text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 inline-flex items-center gap-1"
+              >
+                <MessageCircle className="w-4 h-4" />
+                Adicionar comentario
+              </button>
+            </div>
+
+            {isCommentOpen && (
+              <div className="mt-3 space-y-2">
+                <div className="flex items-center gap-3 text-xs">
+                  <label className="font-medium text-gray-600 dark:text-gray-300">
+                    Tom:
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      className={`px-2 py-0.5 rounded ${
+                        commentTone === 'positive'
+                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30'
+                          : 'bg-gray-100 text-gray-600 dark:bg-dark-hover dark:text-gray-300'
+                      }`}
+                      onClick={() => setCommentTone('positive')}
+                    >
+                      Positivo
+                    </button>
+                    <button
+                      type="button"
+                      className={`px-2 py-0.5 rounded ${
+                        commentTone === 'negative'
+                          ? 'bg-red-100 text-red-700 dark:bg-red-900/30'
+                          : 'bg-gray-100 text-gray-600 dark:bg-dark-hover dark:text-gray-300'
+                      }`}
+                      onClick={() => setCommentTone('negative')}
+                    >
+                      Negativo
+                    </button>
+                  </div>
+                </div>
+                <textarea
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  rows={2}
+                  className="w-full rounded-md border border-gray-200 dark:border-dark-border bg-white dark:bg-dark-bg text-sm text-gray-800 dark:text-gray-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-500/40"
+                  placeholder="Compartilhe detalhes para aprimorarmos as respostas..."
+                />
+                <div className="flex justify-end gap-2 text-sm">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCommentOpen(false);
+                      setCommentText('');
+                    }}
+                    className="px-3 py-1.5 rounded-md border border-gray-200 dark:border-dark-border text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-hover"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!commentText.trim()}
+                    onClick={handleCommentSubmit}
+                    className="px-3 py-1.5 rounded-md bg-primary-600 text-white font-medium hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Enviar
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>
   );
 };
-
 export default ChatMessage;
+

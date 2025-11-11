@@ -55,26 +55,28 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 px-4">
-      <div className="max-w-md w-full space-y-8">
-        {/* Logo e título */}
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-primary-50 dark:from-dark-bg dark:via-dark-card dark:to-dark-bg px-4 py-8 sm:py-12">
+      <div className="max-w-md w-full space-y-6 sm:space-y-8">
+        {/* Logo e título - Responsivo */}
         <div className="text-center">
-          <img
-            src={logo}
-            alt="Financial"
-            className="mx-auto h-16 w-auto mb-4"
-          />
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
+          <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary-100 to-primary-50 dark:from-primary-900/40 dark:to-primary-800/20 mb-3 sm:mb-4 ring-4 ring-primary-100 dark:ring-primary-900/30 p-2.5 sm:p-3">
+            <img
+              src={logo}
+              alt="Financial"
+              className="w-full h-full object-contain"
+            />
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary-700 to-primary-600 bg-clip-text text-transparent dark:from-primary-400 dark:to-primary-500">
             Bem-vindo de volta
           </h2>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+          <p className="mt-2 text-sm sm:text-base text-gray-600 dark:text-gray-400">
             Faça login para continuar
           </p>
         </div>
 
-        {/* Formulário */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {/* Formulário - Responsivo */}
+        <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl border border-gray-100 dark:border-dark-border p-6 sm:p-8">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 sm:space-y-6">
             {/* Email */}
             <div>
               <label
@@ -88,11 +90,11 @@ const Login = () => {
                 type="email"
                 autoComplete="email"
                 {...register('email')}
-                className={`w-full px-4 py-3 rounded-lg border ${
+                className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg border text-sm sm:text-base ${
                   errors.email
                     ? 'border-red-500 focus:ring-red-500'
-                    : 'border-gray-300 dark:border-gray-600 focus:ring-primary-500'
-                } bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 transition-colors`}
+                    : 'border-gray-300 dark:border-dark-border focus:ring-primary-500 dark:focus:ring-primary-600'
+                } bg-white dark:bg-dark-bg text-gray-900 dark:text-white focus:outline-none focus:ring-2 transition-colors`}
                 placeholder="seu@email.com"
               />
               {errors.email && (
@@ -114,22 +116,22 @@ const Login = () => {
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
                   {...register('password')}
-                  className={`w-full px-4 py-3 rounded-lg border ${
+                  className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg border text-sm sm:text-base ${
                     errors.password
                       ? 'border-red-500 focus:ring-red-500'
-                      : 'border-gray-300 dark:border-gray-600 focus:ring-primary-500'
-                  } bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 transition-colors pr-12`}
+                      : 'border-gray-300 dark:border-dark-border focus:ring-primary-500 dark:focus:ring-primary-600'
+                  } bg-white dark:bg-dark-bg text-gray-900 dark:text-white focus:outline-none focus:ring-2 transition-colors pr-11 sm:pr-12`}
                   placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+                  className="absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors touch-manipulation"
                 >
                   {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
+                    <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" />
                   ) : (
-                    <Eye className="w-5 h-5" />
+                    <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
                   )}
                 </button>
               </div>
@@ -142,16 +144,16 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-500 hover:bg-primary-600 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 sm:py-3 text-sm sm:text-base bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-medium rounded-lg transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-primary-600 disabled:hover:to-primary-700 touch-manipulation"
             >
               {loading ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
                   Entrando...
                 </>
               ) : (
                 <>
-                  <LogIn className="w-5 h-5" />
+                  <LogIn className="w-4 h-4 sm:w-5 sm:h-5" />
                   Entrar
                 </>
               )}
@@ -159,12 +161,12 @@ const Login = () => {
           </form>
 
           {/* Link para registro */}
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+          <div className="mt-5 sm:mt-6 text-center">
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
               Não tem uma conta?{' '}
               <Link
                 to="/register"
-                className="text-primary-500 hover:text-primary-600 font-medium transition-colors"
+                className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium transition-colors"
               >
                 Criar conta
               </Link>
@@ -173,7 +175,7 @@ const Login = () => {
         </div>
 
         {/* Footer */}
-        <p className="text-center text-xs text-gray-500 dark:text-gray-500">
+        <p className="text-center text-[10px] sm:text-xs text-gray-500 dark:text-gray-500">
           Financial Imobiliária © {new Date().getFullYear()}
         </p>
       </div>

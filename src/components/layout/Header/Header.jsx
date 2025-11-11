@@ -1,43 +1,68 @@
-import { useState } from 'react';
-import { MessageSquare, Info } from 'lucide-react';
-import InfoModal from './InfoModal';
+import { Home, MessageSquare } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../../contexts/AuthContext';
+import { ThemeToggle } from '../../common';
+import logo from '../../../assets/img/financial-logo.png';
 
 const Header = () => {
-  const [showInfo, setShowInfo] = useState(false);
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const isActive = (path) => location.pathname === path;
 
   return (
-    <>
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-primary-600 to-primary-700 rounded-lg flex items-center justify-center shadow-sm">
-                <MessageSquare className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-primary-700 to-primary-600 bg-clip-text text-transparent">
-                  Agente da Financial
-                </h1>
-                <p className="text-sm text-gray-600">
-                  Assistente de Base de Conhecimento
-                </p>
-              </div>
-            </div>
-
-            <button
-              onClick={() => setShowInfo(true)}
-              className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
-              title="Informações" 
-              aria-label="Abrir informações"
-            >
-              <Info className="w-5 h-5" />
-            </button>
+    <header className="hidden lg:flex bg-white dark:bg-dark-card border-b border-gray-200 dark:border-dark-border sticky top-0 z-30">
+      <div className="w-full px-6 py-3 flex items-center justify-between">
+        {/* Lado esquerdo - Logo e navegação */}
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3">
+            <img
+              src={logo}
+              alt="Logo Financial"
+              className="w-8 h-8 object-contain"
+            />
+            <h1 className="text-lg font-bold bg-gradient-to-r from-primary-700 to-primary-600 bg-clip-text text-transparent whitespace-nowrap">
+              Agente da Financial
+            </h1>
           </div>
-        </div>
-      </header>
 
-      {showInfo && <InfoModal onClose={() => setShowInfo(false)} />}
-    </>
+          {/* Navegação - Apenas para usuários autenticados */}
+          {isAuthenticated && (
+            <nav className="flex items-center gap-2">
+              <button
+                onClick={() => navigate('/dashboard')}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                  isActive('/dashboard')
+                    ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-hover'
+                }`}
+                title="Dashboard"
+              >
+                <Home className="w-5 h-5" />
+                <span className="text-sm font-medium">Dashboard</span>
+              </button>
+
+              <button
+                onClick={() => navigate('/chat')}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                  isActive('/chat')
+                    ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-hover'
+                }`}
+                title="Chat"
+              >
+                <MessageSquare className="w-5 h-5" />
+                <span className="text-sm font-medium">Chat</span>
+              </button>
+            </nav>
+          )}
+        </div>
+
+        {/* Lado direito - Theme toggle */}
+        <ThemeToggle />
+      </div>
+    </header>
   );
 };
 

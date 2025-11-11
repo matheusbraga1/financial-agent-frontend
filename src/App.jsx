@@ -16,9 +16,9 @@ function App() {
     <ErrorBoundary showDetails={import.meta.env.DEV}>
       <Router>
         <AuthProvider>
-          {/* Toast notifications */}
+          {/* Toast notifications - Posicionado no canto superior direito */}
           <Toaster
-            position="top-center"
+            position="top-right"
             toastOptions={{
               duration: 4000,
               style: {
@@ -27,18 +27,18 @@ function App() {
                 fontSize: '14px',
                 maxWidth: '500px',
               },
-              // Success toast
+              // Success toast - Verde da empresa
               success: {
                 iconTheme: {
-                  primary: '#00884f',
+                  primary: '#00884f', // primary-600
                   secondary: '#fff',
                 },
                 style: {
-                  background: '#f0fdf4',
-                  color: '#166534',
-                  border: '1px solid #86efac',
+                  background: '#e6f5ef', // primary-50
+                  color: '#004427', // primary-800
+                  border: '1px solid #66c39f', // primary-300
                 },
-                className: 'dark:!bg-green-900/30 dark:!text-green-200 dark:!border-green-700',
+                className: 'dark:!bg-primary-900/30 dark:!text-primary-200 dark:!border-primary-700',
               },
               // Error toast
               error: {
@@ -54,10 +54,10 @@ function App() {
                 className: 'dark:!bg-red-900/30 dark:!text-red-200 dark:!border-red-700',
                 duration: 5000,
               },
-              // Loading toast
+              // Loading toast - Verde da empresa
               loading: {
                 iconTheme: {
-                  primary: '#00884f',
+                  primary: '#00884f', // primary-600
                   secondary: '#fff',
                 },
                 style: {
@@ -65,7 +65,7 @@ function App() {
                   color: '#374151',
                   border: '1px solid #e5e7eb',
                 },
-                className: 'dark:!bg-gray-800 dark:!text-gray-200 dark:!border-gray-700',
+                className: 'dark:!bg-dark-card dark:!text-gray-200 dark:!border-dark-border',
               },
             }}
           />

@@ -1,9 +1,10 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { MessageSquare, LogOut, User } from 'lucide-react';
+import { useState } from 'react';
 import Sidebar from '../components/layout/Sidebar/Sidebar';
 import MobileHeader from '../components/layout/MobileHeader/MobileHeader';
-import { useState } from 'react';
+import Header from '../components/layout/Header/Header';
 
 /**
  * Página de Dashboard (Home)
@@ -31,7 +32,9 @@ const Dashboard = () => {
       {/* Conteúdo principal */}
       <div className="flex-1 flex flex-col h-full overflow-hidden">
         {/* Header mobile */}
-        <MobileHeader onMenuClick={() => setIsSidebarOpen(true)} />
+        <MobileHeader onToggleSidebar={() => setIsSidebarOpen(true)} />
+        {/* Header desktop */}
+        <Header />
 
         {/* Conteúdo do Dashboard */}
         <div className="flex-1 overflow-y-auto p-6">

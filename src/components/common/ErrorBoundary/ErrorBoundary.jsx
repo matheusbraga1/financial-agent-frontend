@@ -23,33 +23,33 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-          <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-6 text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-4">
-              <AlertTriangle className="w-8 h-8 text-red-600" />
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-primary-50 dark:from-dark-bg dark:via-dark-card dark:to-dark-bg px-4">
+          <div className="max-w-md w-full bg-white dark:bg-dark-card rounded-lg shadow-xl border border-gray-100 dark:border-dark-border p-8 text-center">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-red-100 dark:bg-red-900/30 mb-4 ring-4 ring-red-50 dark:ring-red-900/20">
+              <AlertTriangle className="w-10 h-10 text-red-600 dark:text-red-400" />
             </div>
-            
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
               Ops! Algo deu errado
             </h1>
-            
-            <p className="text-gray-600 mb-6">
+
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
               Ocorreu um erro inesperado. Por favor, tente recarregar a página.
             </p>
-            
+
             <button
               onClick={this.handleReset}
-              className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              className="px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-medium rounded-lg transition-all shadow-md hover:shadow-lg"
             >
               Recarregar Página
             </button>
 
             {this.props.showDetails && this.state.error && (
               <details className="mt-6 text-left">
-                <summary className="cursor-pointer text-sm text-gray-500 hover:text-gray-700">
+                <summary className="cursor-pointer text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
                   Detalhes do erro
                 </summary>
-                <pre className="mt-2 text-xs bg-gray-100 p-3 rounded overflow-auto">
+                <pre className="mt-2 text-xs bg-gray-100 dark:bg-dark-bg p-3 rounded overflow-auto text-gray-800 dark:text-gray-200">
                   {this.state.error.toString()}
                 </pre>
               </details>
