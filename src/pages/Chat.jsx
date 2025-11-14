@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { AlertCircle, LogIn, UserPlus } from 'lucide-react';
+import { Info, X, LogIn, UserPlus } from 'lucide-react';
 import Sidebar from '../components/layout/Sidebar/Sidebar';
 import MobileHeader from '../components/layout/MobileHeader/MobileHeader';
 import ChatInterface from '../features/chat/ChatInterface';
@@ -17,7 +17,11 @@ const Chat = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState(null);
   const [forceNewConversation, setForceNewConversation] = useState(false);
-  
+  const [showGuestBanner, setShowGuestBanner] = useState(() => {
+    // Verifica se usuário já fechou o banner antes
+    return localStorage.getItem('guestBannerDismissed') !== 'true';
+  });
+
   const { isAuthenticated } = useAuth();
   const location = useLocation();
 
@@ -39,12 +43,25 @@ const Chat = () => {
     }
   }, [currentSessionId]);
 
+  const handleDismissBanner = useCallback(() => {
+    setShowGuestBanner(false);
+    localStorage.setItem('guestBannerDismissed', 'true');
+  }, []);
+
   useEffect(() => {
     if (location.state?.newConversation) {
       handleNewConversation();
       window.history.replaceState({}, document.title);
     }
   }, [location, handleNewConversation]);
+
+  // Reseta banner quando usuário faz login
+  useEffect(() => {
+    if (isAuthenticated) {
+      localStorage.removeItem('guestBannerDismissed');
+      setShowGuestBanner(false);
+    }
+  }, [isAuthenticated]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-gradient-to-br from-primary-50 via-white to-primary-50 dark:from-dark-bg dark:via-dark-card dark:to-dark-bg">
@@ -67,36 +84,56 @@ const Chat = () => {
           <ThemeToggle />
         </div>
 
-        {/* Banner para usuários não autenticados */}
-        {!isAuthenticated && (
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800">
-            <div className="max-w-7xl mx-auto px-4 py-3">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                {/* Mensagem */}
-                <div className="flex items-center gap-3">
-                  <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-500 flex-shrink-0" />
-                  <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                    Você está usando o chat sem login. Suas conversas{' '}
-                    <span className="font-semibold">não serão salvas</span>.
-                  </p>
-                </div>
+        {/* Banner para usuários não autenticados - Dismissível */}
+        {!isAuthenticated && showGuestBanner && (
+          <div className="relative animate-slide-down">
+            <div className="bg-gradient-to-r from-blue-50 via-primary-50/30 to-blue-50 dark:from-blue-900/10 dark:via-primary-900/10 dark:to-blue-900/10 border-b border-blue-200/50 dark:border-blue-800/30 backdrop-blur-sm">
+              <div className="max-w-7xl mx-auto px-4 py-3">
+                <div className="flex items-start gap-3">
+                  {/* Ícone */}
+                  <div className="flex-shrink-0 mt-0.5">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-400 dark:to-blue-500 flex items-center justify-center shadow-sm">
+                      <Info className="w-4 h-4 text-white" />
+                    </div>
+                  </div>
 
-                {/* Botões */}
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <Link
-                    to="/login"
-                    className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-yellow-800 dark:text-yellow-200 hover:bg-yellow-100 dark:hover:bg-yellow-900/40 rounded-md transition-colors"
+                  {/* Conteúdo */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
+                      Modo visitante
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                      Você está explorando o chat como visitante. Para salvar suas conversas e acessá-las depois, faça login ou crie uma conta.
+                    </p>
+
+                    {/* Botões de ação */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Link
+                        to="/login"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary-700 dark:text-primary-300 bg-primary-100 dark:bg-primary-900/30 hover:bg-primary-200 dark:hover:bg-primary-900/50 rounded-lg transition-all duration-200 hover:shadow-md"
+                      >
+                        <LogIn className="w-3.5 h-3.5" />
+                        Fazer Login
+                      </Link>
+                      <Link
+                        to="/register"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-700 hover:to-primary-600 dark:from-primary-500 dark:to-primary-400 dark:hover:from-primary-600 dark:hover:to-primary-500 rounded-lg transition-all duration-200 hover:shadow-md shadow-sm"
+                      >
+                        <UserPlus className="w-3.5 h-3.5" />
+                        Criar Conta Grátis
+                      </Link>
+                    </div>
+                  </div>
+
+                  {/* Botão Fechar */}
+                  <button
+                    onClick={handleDismissBanner}
+                    className="flex-shrink-0 p-1.5 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                    aria-label="Fechar aviso"
+                    title="Fechar aviso"
                   >
-                    <LogIn className="w-4 h-4" />
-                    Login
-                  </Link>
-                  <Link
-                    to="/register"
-                    className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-yellow-600 hover:bg-yellow-700 text-white rounded-md transition-colors"
-                  >
-                    <UserPlus className="w-4 h-4" />
-                    Criar Conta
-                  </Link>
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             </div>
