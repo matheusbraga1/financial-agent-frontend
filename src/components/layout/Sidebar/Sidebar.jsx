@@ -37,6 +37,7 @@ const Sidebar = ({
   currentSessionId,
   onSelectSession,
   onNewConversation,
+  newSessionData,
 }) => {
   const [state, actions] = useSidebarState();
   const { user, logout, isAuthenticated } = useAuth();
@@ -170,6 +171,7 @@ const Sidebar = ({
               <ConversationHistory
                 onSelectSession={handleSelectSession}
                 currentSessionId={currentSessionId}
+                newSessionData={newSessionData}
               />
             </div>
           )}
@@ -252,6 +254,10 @@ Sidebar.propTypes = {
   currentSessionId: PropTypes.string,
   onSelectSession: PropTypes.func,
   onNewConversation: PropTypes.func,
+  newSessionData: PropTypes.shape({
+    sessionId: PropTypes.string.isRequired,
+    firstMessage: PropTypes.string,
+  }),
 };
 
 Sidebar.displayName = 'Sidebar';

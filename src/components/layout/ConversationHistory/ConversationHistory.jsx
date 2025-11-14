@@ -1,51 +1,113 @@
-import { useState, useEffect } from 'react';
-import { MessageSquare, Trash2, AlertCircle, Loader2, Clock, ChevronRight } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import PropTypes from 'prop-types';
+import { MessageSquare, AlertCircle } from 'lucide-react';
 import { chatService } from '../../../features/chat/services';
 import { toast } from 'sonner';
-import { formatDistanceToNow } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import ConversationItem from './ConversationItem';
 
 /**
  * Conversation History Premium da Financial
  * - Design profissional com cores da marca
- * - Verde #00884f e Dourado #bf9c4b
+ * - Efeito de digitação em novas conversas (estilo ChatGPT/Claude)
  * - Animações e microinterações premium
  * - Totalmente responsivo
  * - Modal de confirmação estilizado
+ * - Atualização em tempo real
+ *
+ * @component
  */
-const ConversationHistory = ({ onSelectSession, currentSessionId }) => {
+const ConversationHistory = ({
+  onSelectSession,
+  currentSessionId,
+  newSessionData,
+}) => {
   const [sessions, setSessions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [deletingSessionId, setDeletingSessionId] = useState(null);
   const [hoveredSessionId, setHoveredSessionId] = useState(null);
   const [confirmDeleteSession, setConfirmDeleteSession] = useState(null);
+  const [newlyAddedSessionId, setNewlyAddedSessionId] = useState(null);
+
+  // Ref para rastrear sessões já adicionadas (evitar duplicatas)
+  const addedSessionIdsRef = useRef(new Set());
 
   useEffect(() => {
     loadSessions();
   }, []);
 
-  const loadSessions = async () => {
+  /**
+   * Carrega todas as sessões do backend
+   * Marca todas como já adicionadas para evitar duplicatas
+   */
+  const loadSessions = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
       const data = await chatService.getUserSessions();
       setSessions(data);
+
+      // Marca todas as sessões carregadas como já adicionadas
+      data.forEach(session => {
+        addedSessionIdsRef.current.add(session.session_id);
+      });
     } catch (err) {
       console.error('Erro ao carregar sessões:', err);
       setError('Não foi possível carregar o histórico');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const handleDeleteSession = async (sessionId, e) => {
-    e.stopPropagation();
+  /**
+   * Adiciona nova sessão ao topo da lista com efeito de digitação
+   * Evita duplicatas usando ref
+   */
+  useEffect(() => {
+    if (!newSessionData) return;
+
+    const { sessionId, firstMessage } = newSessionData;
+
+    // Evita adicionar duplicatas
+    if (addedSessionIdsRef.current.has(sessionId)) {
+      return;
+    }
+
+    // Marca como adicionada
+    addedSessionIdsRef.current.add(sessionId);
+
+    // Cria objeto de sessão temporário
+    const newSession = {
+      session_id: sessionId,
+      last_message: firstMessage || 'Nova conversa',
+      created_at: new Date().toISOString(),
+      message_count: 1,
+    };
+
+    // Adiciona no topo da lista
+    setSessions(prev => [newSession, ...prev]);
+
+    // Marca como recém-adicionada para aplicar efeito de digitação
+    setNewlyAddedSessionId(sessionId);
+
+    // Remove flag após 3 segundos (tempo suficiente para digitação completar)
+    setTimeout(() => {
+      setNewlyAddedSessionId(null);
+    }, 3000);
+  }, [newSessionData]);
+
+  /**
+   * Handler: Deletar sessão
+   */
+  const handleDeleteSession = useCallback((sessionId) => {
     setConfirmDeleteSession(sessionId);
-  };
+  }, []);
 
-  const confirmDelete = async () => {
+  /**
+   * Confirma e executa deleção de sessão
+   */
+  const confirmDelete = useCallback(async () => {
     const sessionId = confirmDeleteSession;
     setConfirmDeleteSession(null);
     setDeletingSessionId(sessionId);
@@ -53,8 +115,14 @@ const ConversationHistory = ({ onSelectSession, currentSessionId }) => {
     try {
       await chatService.deleteSession(sessionId);
       toast.success('Conversa excluída com sucesso');
+
+      // Remove da lista
       setSessions(prev => prev.filter(s => s.session_id !== sessionId));
 
+      // Remove do Set de controle
+      addedSessionIdsRef.current.delete(sessionId);
+
+      // Se era a sessão atual, limpa seleção
       if (sessionId === currentSessionId) {
         onSelectSession?.(null);
       }
@@ -64,27 +132,7 @@ const ConversationHistory = ({ onSelectSession, currentSessionId }) => {
     } finally {
       setDeletingSessionId(null);
     }
-  };
-
-  const truncateText = (text, maxLength = 60) => {
-    if (!text || text.trim() === '') return 'Nova conversa';
-    const cleanText = text.trim().replace(/\s+/g, ' ');
-    if (cleanText.length <= maxLength) return cleanText;
-    const truncated = cleanText.substring(0, maxLength);
-    const lastSpace = truncated.lastIndexOf(' ');
-    return (lastSpace > 0 ? truncated.substring(0, lastSpace) : truncated) + '...';
-  };
-
-  const formatTimestamp = (timestamp) => {
-    try {
-      return formatDistanceToNow(new Date(timestamp), {
-        addSuffix: true,
-        locale: ptBR,
-      });
-    } catch {
-      return '';
-    }
-  };
+  }, [confirmDeleteSession, currentSessionId, onSelectSession]);
 
   // Loading state premium
   if (isLoading) {
@@ -150,7 +198,7 @@ const ConversationHistory = ({ onSelectSession, currentSessionId }) => {
     );
   }
 
-  // Sessions list premium
+  // Sessions list premium - usando ConversationItem
   return (
     <>
       <div className="space-y-1.5">
@@ -158,88 +206,21 @@ const ConversationHistory = ({ onSelectSession, currentSessionId }) => {
           const isActive = session.session_id === currentSessionId;
           const isDeleting = deletingSessionId === session.session_id;
           const isHovered = hoveredSessionId === session.session_id;
+          const enableTyping = session.session_id === newlyAddedSessionId;
 
           return (
-            <button
+            <ConversationItem
               key={session.session_id}
-              onClick={() => !isDeleting && onSelectSession?.(session.session_id)}
+              session={session}
+              isActive={isActive}
+              isDeleting={isDeleting}
+              isHovered={isHovered}
+              enableTyping={enableTyping}
+              onSelect={() => onSelectSession?.(session.session_id)}
+              onDelete={() => handleDeleteSession(session.session_id)}
               onMouseEnter={() => setHoveredSessionId(session.session_id)}
               onMouseLeave={() => setHoveredSessionId(null)}
-              disabled={isDeleting}
-              className={`
-                w-full text-left px-3 py-3 rounded-xl
-                transition-all duration-200 ease-out
-                ${isActive
-                  ? 'bg-gradient-to-r from-primary-50 to-secondary-50/30 dark:from-primary-900/20 dark:to-secondary-900/10 text-primary-800 dark:text-primary-200 shadow-sm ring-1 ring-primary-200 dark:ring-primary-800'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-hover hover:shadow-sm'
-                }
-                ${isDeleting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-[1.02]'}
-                group relative overflow-hidden
-                min-h-[44px]
-              `}
-            >
-              {isActive && (
-                <div className="absolute inset-0 bg-gradient-to-r from-primary-500/5 to-secondary-500/5 dark:from-primary-400/10 dark:to-secondary-400/10 pointer-events-none" />
-              )}
-
-              <div className="relative flex items-start gap-3">
-                <div className={`
-                  flex-shrink-0 mt-0.5 w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200
-                  ${isActive
-                    ? 'bg-gradient-to-br from-primary-600 to-primary-500 dark:from-primary-500 dark:to-primary-400 text-white shadow-md shadow-primary-500/30'
-                    : 'bg-gray-100 dark:bg-dark-hover text-gray-500 dark:text-gray-400 group-hover:bg-primary-100 dark:group-hover:bg-primary-900/30 group-hover:text-primary-600 dark:group-hover:text-primary-400'
-                  }
-                `}>
-                  <MessageSquare className="w-4 h-4" />
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <p className={`text-sm leading-snug mb-1.5 font-medium ${isActive ? 'text-primary-900 dark:text-primary-100' : ''}`}>
-                    {truncateText(session.last_message)}
-                  </p>
-                  <div className="flex items-center gap-2 text-xs">
-                    <div className={`flex items-center gap-1 ${isActive ? 'text-primary-700 dark:text-primary-300' : 'text-gray-500 dark:text-gray-400'}`}>
-                      <Clock className="w-3 h-3" />
-                      <span>{formatTimestamp(session.created_at)}</span>
-                    </div>
-                    {session.message_count > 0 && (
-                      <>
-                        <span className="text-gray-300 dark:text-gray-600">•</span>
-                        <span className={`flex items-center gap-1 ${isActive ? 'text-primary-700 dark:text-primary-300' : 'text-gray-500 dark:text-gray-400'}`}>
-                          <MessageSquare className="w-3 h-3" />
-                          <span>{session.message_count}</span>
-                        </span>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex-shrink-0 flex items-center gap-1">
-                  {isActive && (
-                    <ChevronRight className="w-4 h-4 text-primary-600 dark:text-primary-400 animate-pulse" />
-                  )}
-                  <button
-                    onClick={(e) => handleDeleteSession(session.session_id, e)}
-                    disabled={isDeleting}
-                    className={`
-                      p-1.5 rounded-lg transition-all duration-200
-                      ${(isHovered || isActive) && !isDeleting ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-2'}
-                      text-gray-400 hover:text-red-600 dark:hover:text-red-400
-                      hover:bg-red-50 dark:hover:bg-red-900/20
-                      disabled:opacity-50 disabled:cursor-not-allowed hover:scale-110
-                    `}
-                    title="Excluir"
-                    aria-label="Excluir conversa"
-                  >
-                    {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              {isActive && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-10 bg-gradient-to-b from-primary-600 via-primary-500 to-primary-600 dark:from-primary-500 dark:via-primary-400 dark:to-primary-500 rounded-r-full shadow-lg shadow-primary-500/50" />
-              )}
-            </button>
+            />
           );
         })}
       </div>
@@ -286,6 +267,21 @@ const ConversationHistory = ({ onSelectSession, currentSessionId }) => {
       )}
     </>
   );
+};
+
+ConversationHistory.propTypes = {
+  onSelectSession: PropTypes.func,
+  currentSessionId: PropTypes.string,
+  newSessionData: PropTypes.shape({
+    sessionId: PropTypes.string.isRequired,
+    firstMessage: PropTypes.string,
+  }),
+};
+
+ConversationHistory.defaultProps = {
+  onSelectSession: null,
+  currentSessionId: null,
+  newSessionData: null,
 };
 
 export default ConversationHistory;

@@ -20,12 +20,15 @@ const Chat = () => {
     // Verifica se usuário já fechou o banner antes
     return localStorage.getItem('guestBannerDismissed') !== 'true';
   });
+  const [newSessionData, setNewSessionData] = useState(null);
 
   const { isAuthenticated } = useAuth();
   const location = useLocation();
 
   // Ref para evitar loop infinito ao atualizar sessionId
   const isUpdatingSessionRef = useRef(false);
+  // Ref para rastrear primeira mensagem da sessão
+  const sessionFirstMessageRef = useRef({});
 
   /**
    * Handler: Nova conversa
@@ -70,6 +73,31 @@ const Chat = () => {
     }, 100);
   }, []);
 
+  /**
+   * Handler: Captura primeira mensagem de nova sessão
+   * Notifica sidebar para adicionar ao histórico com efeito de digitação
+   */
+  const handleFirstMessage = useCallback((sessionId, message) => {
+    // Só processa se ainda não foi registrada
+    if (sessionFirstMessageRef.current[sessionId]) {
+      return;
+    }
+
+    // Marca como processada
+    sessionFirstMessageRef.current[sessionId] = message;
+
+    // Cria objeto para o sidebar
+    setNewSessionData({
+      sessionId,
+      firstMessage: message,
+    });
+
+    // Limpa após 3 segundos (tempo suficiente para o efeito de digitação)
+    setTimeout(() => {
+      setNewSessionData(null);
+    }, 3500);
+  }, []);
+
   const handleDismissBanner = useCallback(() => {
     setShowGuestBanner(false);
     localStorage.setItem('guestBannerDismissed', 'true');
@@ -93,12 +121,13 @@ const Chat = () => {
   return (
     <div className="flex h-screen overflow-hidden bg-gradient-to-br from-primary-50 via-white to-primary-50 dark:from-dark-bg dark:via-dark-card dark:to-dark-bg">
       {/* Sidebar */}
-      <Sidebar 
-        isOpen={isSidebarOpen} 
+      <Sidebar
+        isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         currentSessionId={currentSessionId}
         onSelectSession={handleSelectSession}
         onNewConversation={handleNewConversation}
+        newSessionData={newSessionData}
       />
 
       {/* Conteúdo principal */}
@@ -163,10 +192,11 @@ const Chat = () => {
         )}
 
         {/* Interface de chat */}
-        <ChatInterface 
+        <ChatInterface
           sessionId={currentSessionId}
           forceNewConversation={forceNewConversation}
           onSessionCreated={handleSessionCreated}
+          onFirstMessage={handleFirstMessage}
         />
       </div>
     </div>

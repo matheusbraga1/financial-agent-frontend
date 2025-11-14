@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import PropTypes from 'prop-types';
 import { ArrowDown } from 'lucide-react';
 import { useChat, useSmartScroll, useKeyboardShortcuts } from './hooks';
 import {
@@ -18,7 +19,7 @@ import {
  * - Feedback de mensagens
  * - Scroll inteligente
  */
-const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated }) => {
+const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated, onFirstMessage }) => {
   const {
     messages,
     isLoading,
@@ -35,8 +36,11 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated }) =>
   const messagesEndRef = useRef(null);
   const containerRef = useRef(null);
 
-  // Ref para armazenar callback sem causar re-renders
+  // Ref para armazenar callbacks sem causar re-renders
   const onSessionCreatedRef = useRef(onSessionCreated);
+  const onFirstMessageRef = useRef(onFirstMessage);
+  // Ref para rastrear se já notificou a primeira mensagem
+  const hasNotifiedFirstMessageRef = useRef(new Set());
 
   // Smart scroll hook com badge de novas mensagens
   const {
@@ -55,10 +59,38 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated }) =>
     inputRef: null, // ChatInput gerencia seu próprio focus
   });
 
-  // Atualiza ref quando callback muda
+  // Atualiza refs quando callbacks mudam
   useEffect(() => {
     onSessionCreatedRef.current = onSessionCreated;
   }, [onSessionCreated]);
+
+  useEffect(() => {
+    onFirstMessageRef.current = onFirstMessage;
+  }, [onFirstMessage]);
+
+  /**
+   * Notifica sobre primeira mensagem do usuário em nova sessão
+   * Usado para adicionar conversa ao histórico com efeito de digitação
+   */
+  useEffect(() => {
+    if (!currentSessionId || !messages.length) return;
+
+    // Evita notificar múltiplas vezes para mesma sessão
+    if (hasNotifiedFirstMessageRef.current.has(currentSessionId)) {
+      return;
+    }
+
+    // Procura primeira mensagem do usuário
+    const firstUserMessage = messages.find(msg => msg.type === 'user');
+
+    if (firstUserMessage && firstUserMessage.content) {
+      // Marca como notificada
+      hasNotifiedFirstMessageRef.current.add(currentSessionId);
+
+      // Notifica o componente pai
+      onFirstMessageRef.current?.(currentSessionId, firstUserMessage.content);
+    }
+  }, [messages, currentSessionId]);
 
   /**
    * Notifica componente pai quando session_id muda
@@ -205,6 +237,20 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated }) =>
       )}
     </div>
   );
+};
+
+ChatInterface.propTypes = {
+  sessionId: PropTypes.string,
+  forceNewConversation: PropTypes.bool,
+  onSessionCreated: PropTypes.func,
+  onFirstMessage: PropTypes.func,
+};
+
+ChatInterface.defaultProps = {
+  sessionId: null,
+  forceNewConversation: false,
+  onSessionCreated: null,
+  onFirstMessage: null,
 };
 
 export default ChatInterface;
