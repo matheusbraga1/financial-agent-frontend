@@ -66,14 +66,7 @@ export const useKeyboardShortcuts = ({
       if (isMod && key === '/') {
         e.preventDefault();
         toast.info('Atalhos de Teclado', {
-          description: (
-            <div className="space-y-1 text-xs">
-              <p>• Cmd+K: Focar input</p>
-              <p>• Esc: Cancelar geração</p>
-              <p>• Cmd+Shift+C: Copiar última resposta</p>
-              <p>• Cmd+↓: Scroll para o final</p>
-            </div>
-          ),
+          description: '• Cmd+K: Focar input\n• Esc: Cancelar geração\n• Cmd+Shift+C: Copiar última resposta\n• Cmd+↓: Scroll para o final',
           duration: 5000,
         });
       }
