@@ -2,6 +2,7 @@ import { apiClient } from '../../../services/api/axios.config';
 import { config } from '../../../config/env';
 import { handleApiError } from '../../../utils';
 import { STREAM_TIMEOUT } from '../../../constants/apiConstants';
+import { CHAT_ERRORS, NETWORK_ERRORS, extractErrorMessage } from '../../../constants/errorMessages';
 import {
   adaptChatHistory,
   adaptSessions,
@@ -12,6 +13,7 @@ import {
 /**
  * Serviço de Chat - Comunicação com a API de Chat
  * Sincronizado com backend FastAPI
+ * Usa mensagens de erro padronizadas e profissionais
  */
 class ChatService {
   /**
@@ -84,22 +86,44 @@ class ChatService {
       await this._processStream(response, onMessage, onComplete);
     } catch (error) {
       console.error('Erro no streaming:', error);
-      
-      let friendlyMessage = 'Erro ao conectar com o servidor';
-      
+
+      let errorObj;
+
+      // Timeout
       if (error.name === 'AbortError') {
-        friendlyMessage = 'Tempo limite excedido. Tente novamente.';
-      } else if (error.message.includes('Failed to fetch')) {
-        friendlyMessage = 'Sem conexão com o servidor. Verifique sua internet.';
-      } else if (error.message.includes('500')) {
-        friendlyMessage = 'Erro interno do servidor. Nossa equipe foi notificada.';
-      } else if (error.message.includes('429')) {
-        friendlyMessage = 'Muitas requisições. Aguarde alguns segundos.';
-      } else if (error.message) {
-        friendlyMessage = error.message;
+        errorObj = NETWORK_ERRORS.TIMEOUT;
       }
-      
-      onError?.(new Error(friendlyMessage));
+      // Erro de rede/conexão
+      else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+        errorObj = NETWORK_ERRORS.NO_CONNECTION;
+      }
+      // Erro do servidor
+      else if (error.message.includes('500') || error.message.includes('502') || error.message.includes('503')) {
+        errorObj = NETWORK_ERRORS.SERVER_ERROR;
+      }
+      // Rate limit
+      else if (error.message.includes('429')) {
+        errorObj = NETWORK_ERRORS.RATE_LIMIT;
+      }
+      // Conexão de stream interrompida
+      else if (error.message.includes('stream') || error.message.includes('connection')) {
+        errorObj = CHAT_ERRORS.STREAM_CONNECTION_FAILED;
+      }
+      // Erro genérico
+      else {
+        errorObj = {
+          title: 'Erro na comunicação',
+          message: error.message || CHAT_ERRORS.SEND_MESSAGE_FAILED.message,
+          suggestion: CHAT_ERRORS.SEND_MESSAGE_FAILED.suggestion,
+        };
+      }
+
+      // Criar erro formatado
+      const formattedError = new Error(errorObj.message);
+      formattedError.title = errorObj.title;
+      formattedError.suggestion = errorObj.suggestion;
+
+      onError?.(formattedError);
     } finally {
       clearTimeout(timeoutId);
       controller.abort();

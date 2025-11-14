@@ -1,8 +1,10 @@
 import api from './axios.config';
+import { AUTH_ERRORS, extractErrorMessage } from '../../constants/errorMessages';
 
 /**
  * Serviço de autenticação
  * Integração com endpoints de autenticação do backend
+ * Usa mensagens de erro padronizadas e profissionais
  */
 const authService = {
   /**
@@ -141,33 +143,52 @@ const authService = {
   },
 
   /**
-   * Trata erros da API e retorna mensagens amigáveis
+   * Trata erros da API e retorna mensagens amigáveis e profissionais
    * @private
    */
   _handleError(error) {
     if (error.response) {
       const { status, data } = error.response;
+      const detail = data?.detail || '';
 
-      // Mapeamento de erros comuns
-      const errorMessages = {
-        400: data?.detail || 'Dados inválidos. Verifique os campos.',
-        401: 'Credenciais inválidas. Verifique seu email e senha.',
-        403: 'Acesso negado. Você não tem permissão para esta ação.',
-        409: 'Este email já está cadastrado.',
-        422: 'Dados inválidos. Verifique os campos.',
-        500: 'Erro no servidor. Tente novamente mais tarde.',
+      // Mapeamento específico de erros de autenticação
+      const errorMap = {
+        400: detail.toLowerCase().includes('password')
+          ? AUTH_ERRORS.WEAK_PASSWORD
+          : AUTH_ERRORS.INVALID_CREDENTIALS,
+        401: detail.toLowerCase().includes('token')
+          ? AUTH_ERRORS.INVALID_TOKEN
+          : AUTH_ERRORS.INVALID_CREDENTIALS,
+        403: AUTH_ERRORS.PERMISSION_DENIED || { message: 'Acesso negado' },
+        404: AUTH_ERRORS.USER_NOT_FOUND,
+        409: detail.toLowerCase().includes('username')
+          ? AUTH_ERRORS.USERNAME_TAKEN
+          : AUTH_ERRORS.EMAIL_TAKEN,
+        422: detail.toLowerCase().includes('password')
+          ? AUTH_ERRORS.WEAK_PASSWORD
+          : { message: data?.detail || 'Dados inválidos. Verifique os campos.' },
+        423: AUTH_ERRORS.ACCOUNT_LOCKED,
       };
 
-      const message = errorMessages[status] || data?.detail || 'Erro desconhecido';
+      const errorObj = errorMap[status] || extractErrorMessage(error);
 
-      return new Error(message);
+      // Criar erro com mensagem formatada
+      const err = new Error(errorObj.message || data?.detail || 'Erro na autenticação');
+      err.title = errorObj.title;
+      err.suggestion = errorObj.suggestion;
+      err.statusCode = status;
+
+      return err;
     }
 
     if (error.request) {
-      return new Error('Não foi possível conectar ao servidor. Verifique sua conexão.');
+      const err = new Error('Não foi possível conectar ao servidor. Verifique sua conexão com a internet.');
+      err.title = 'Erro de Conexão';
+      err.suggestion = 'Verifique se você está conectado à internet e tente novamente.';
+      return err;
     }
 
-    return new Error(error.message || 'Erro inesperado');
+    return new Error(error.message || 'Erro inesperado ao processar autenticação');
   },
 };
 

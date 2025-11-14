@@ -5,32 +5,35 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Eye, EyeOff, UserPlus, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { VALIDATION_ERRORS } from '../constants/errorMessages';
 import logo from '../assets/img/financial-logo.png';
 
-// Schema de validação com Zod
+// Schema de validação com Zod e mensagens profissionais
 const registerSchema = z
   .object({
     username: z
       .string()
-      .min(3, 'Nome de usuário deve ter no mínimo 3 caracteres')
-      .max(50, 'Nome de usuário muito longo')
+      .min(1, VALIDATION_ERRORS.REQUIRED_FIELD)
+      .min(3, VALIDATION_ERRORS.USERNAME_TOO_SHORT)
+      .max(50, VALIDATION_ERRORS.USERNAME_TOO_LONG)
       .regex(
         /^[a-zA-Z0-9_]+$/,
-        'Use apenas letras, números e underscore'
+        VALIDATION_ERRORS.INVALID_USERNAME
       ),
     email: z
       .string()
-      .min(1, 'Email é obrigatório')
-      .email('Email inválido'),
+      .min(1, VALIDATION_ERRORS.REQUIRED_FIELD)
+      .email(VALIDATION_ERRORS.INVALID_EMAIL),
     password: z
       .string()
-      .min(8, 'Senha deve ter no mínimo 8 caracteres'),
+      .min(1, VALIDATION_ERRORS.REQUIRED_FIELD)
+      .min(8, VALIDATION_ERRORS.PASSWORD_TOO_SHORT),
     confirmPassword: z
       .string()
-      .min(1, 'Confirme sua senha'),
+      .min(1, VALIDATION_ERRORS.REQUIRED_FIELD),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: 'As senhas não coincidem',
+    message: VALIDATION_ERRORS.PASSWORD_MISMATCH,
     path: ['confirmPassword'],
   });
 

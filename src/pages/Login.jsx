@@ -5,17 +5,20 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Eye, EyeOff, LogIn, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { VALIDATION_ERRORS } from '../constants/errorMessages';
 import logo from '../assets/img/financial-logo.png';
 
-// Schema de validação com Zod
+// Schema de validação com Zod e mensagens profissionais
 const loginSchema = z.object({
   username: z
     .string()
-    .min(3, 'Nome de usuário deve ter no mínimo 3 caracteres')
-    .max(50, 'Nome de usuário muito longo'),
+    .min(1, VALIDATION_ERRORS.REQUIRED_FIELD)
+    .min(3, VALIDATION_ERRORS.USERNAME_TOO_SHORT)
+    .max(50, VALIDATION_ERRORS.USERNAME_TOO_LONG),
   password: z
     .string()
-    .min(6, 'Senha deve ter no mínimo 6 caracteres'),
+    .min(1, VALIDATION_ERRORS.REQUIRED_FIELD)
+    .min(6, 'A senha deve ter no mínimo 6 caracteres'),
 });
 
 const Login = () => {
