@@ -1,10 +1,10 @@
-import { memo, useRef, useEffect } from 'react';
+import { memo, useRef, useEffect, useState } from 'react';
+import PropTypes from 'prop-types';
 import { Search, MessageSquare, Loader2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ConversationHistory from '../../ConversationHistory/ConversationHistory';
 import { useSidebarSearch } from '../hooks';
 import { chatService } from '../../../../features/chat/services';
-import { useState } from 'react';
 
 /**
  * Modal de busca de conversas
@@ -175,6 +175,14 @@ const SidebarSearch = memo(
     );
   }
 );
+
+SidebarSearch.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onSelectSession: PropTypes.func.isRequired,
+  currentSessionId: PropTypes.string,
+  isAuthenticated: PropTypes.bool,
+};
 
 SidebarSearch.displayName = 'SidebarSearch';
 

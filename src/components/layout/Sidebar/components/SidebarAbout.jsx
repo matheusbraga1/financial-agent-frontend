@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import PropTypes from 'prop-types';
 import { Sparkles, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -99,6 +100,11 @@ const SidebarAbout = memo(({ isOpen, onClose }) => {
     </AnimatePresence>
   );
 });
+
+SidebarAbout.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+};
 
 SidebarAbout.displayName = 'SidebarAbout';
 

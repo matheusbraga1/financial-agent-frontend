@@ -5,6 +5,7 @@ import { Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useBreakpoints } from '../../../hooks/useMediaQuery';
 import ConversationHistory from '../ConversationHistory/ConversationHistory';
 import {
   SidebarHeader,
@@ -39,6 +40,7 @@ const Sidebar = ({
 }) => {
   const [state, actions] = useSidebarState();
   const { user, logout, isAuthenticated } = useAuth();
+  const { isDesktop } = useBreakpoints();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -120,7 +122,7 @@ const Sidebar = ({
       <motion.aside
         initial={false}
         animate={{
-          x: isOpen ? 0 : '-100%',
+          x: isDesktop || isOpen ? 0 : '-100%',
         }}
         transition={{
           type: 'spring',
@@ -135,7 +137,6 @@ const Sidebar = ({
           flex flex-col
           overflow-hidden
           transition-all duration-300 ease-in-out
-          lg:translate-x-0
           shadow-2xl lg:shadow-none
         `}
         aria-label="Menu lateral"

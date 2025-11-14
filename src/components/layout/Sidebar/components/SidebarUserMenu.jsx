@@ -1,4 +1,5 @@
 import { memo, useRef, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import {
   LogOut,
   User,
@@ -268,6 +269,24 @@ const SidebarUserMenu = memo(
     );
   }
 );
+
+SidebarUserMenu.propTypes = {
+  user: PropTypes.shape({
+    name: PropTypes.string,
+    email: PropTypes.string,
+    is_admin: PropTypes.bool,
+  }),
+  isAuthenticated: PropTypes.bool,
+  isCollapsed: PropTypes.bool.isRequired,
+  showUserMenu: PropTypes.bool.isRequired,
+  onToggleUserMenu: PropTypes.func.isRequired,
+  onCloseUserMenu: PropTypes.func.isRequired,
+  onLogout: PropTypes.func.isRequired,
+  onOpenInfo: PropTypes.func.isRequired,
+  isLoggingOut: PropTypes.bool,
+  isOpen: PropTypes.bool,
+  onClose: PropTypes.func,
+};
 
 SidebarUserMenu.displayName = 'SidebarUserMenu';
 
