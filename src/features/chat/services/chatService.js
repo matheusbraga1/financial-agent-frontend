@@ -40,12 +40,33 @@ class ChatService {
   }
 
   /**
-   * Aborta o streaming atual
+   * Aborta o streaming atual (apenas frontend)
    */
   abortStream() {
     if (this.currentStreamController) {
       this.currentStreamController.abort();
       this.currentStreamController = null;
+    }
+  }
+
+  /**
+   * Cancela a geração no backend
+   * @param {string} sessionId - ID da sessão para cancelar
+   * @returns {Promise<{message: string}>}
+   */
+  async cancelStream(sessionId) {
+    try {
+      if (!sessionId) {
+        console.warn('cancelStream: sessionId não fornecido');
+        return;
+      }
+
+      const response = await apiClient.delete(`/chat/stream/${sessionId}`);
+      return response.data;
+    } catch (error) {
+      // Log silencioso - não precisa mostrar erro ao usuário
+      // pois o stream já foi abortado no frontend
+      console.debug('Erro ao cancelar stream no backend:', error?.message);
     }
   }
 

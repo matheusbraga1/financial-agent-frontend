@@ -105,9 +105,17 @@ export const useChat = (useStreaming = true, initialSessionId = null) => {
 
   /**
    * Para a geração em andamento
+   * 1. Cancela no backend (envia DELETE para /chat/stream/{session_id})
+   * 2. Aborta o stream no frontend (fecha conexão SSE)
    */
-  const stopGeneration = useCallback(() => {
+  const stopGeneration = useCallback(async () => {
+    // Primeiro: cancela no backend para parar a geração imediatamente
+    await chatService.cancelStream(sessionIdRef.current);
+
+    // Segundo: aborta o stream no frontend (fecha conexão)
     chatService.abortStream();
+
+    // Atualiza estados da UI
     setIsStreaming(false);
     setIsLoading(false);
   }, []);
