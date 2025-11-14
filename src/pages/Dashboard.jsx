@@ -4,7 +4,6 @@ import { MessageSquare, LogOut, User, Sparkles, Activity } from 'lucide-react';
 import { useState } from 'react';
 import Sidebar from '../components/layout/Sidebar/Sidebar';
 import MobileHeader from '../components/layout/MobileHeader/MobileHeader';
-import { ThemeToggle } from '../components/common';
 
 /**
  * Página Dashboard - Layout Atualizado
@@ -35,11 +34,6 @@ const Dashboard = () => {
       <div className="flex-1 flex flex-col h-full overflow-hidden">
         {/* Header mobile apenas */}
         <MobileHeader onToggleSidebar={() => setIsSidebarOpen(true)} />
-
-        {/* Theme Toggle - Desktop (canto superior direito) */}
-        <div className="hidden lg:block absolute top-4 right-6 z-20">
-          <ThemeToggle />
-        </div>
 
         {/* Conteúdo do Dashboard */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">

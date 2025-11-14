@@ -5,7 +5,6 @@ import Sidebar from '../components/layout/Sidebar/Sidebar';
 import MobileHeader from '../components/layout/MobileHeader/MobileHeader';
 import ChatInterface from '../features/chat/ChatInterface';
 import { useAuth } from '../contexts/AuthContext';
-import { ThemeToggle } from '../components/common';
 
 /**
  * Página de Chat - Layout Atualizado
@@ -78,11 +77,6 @@ const Chat = () => {
       <div className="flex-1 flex flex-col h-full overflow-hidden">
         {/* Header mobile apenas */}
         <MobileHeader onToggleSidebar={() => setIsSidebarOpen(true)} />
-
-        {/* Theme Toggle - Desktop (canto superior direito) */}
-        <div className="hidden lg:block absolute top-4 right-6 z-20">
-          <ThemeToggle />
-        </div>
 
         {/* Banner para usuários não autenticados - Dismissível */}
         {!isAuthenticated && showGuestBanner && (
