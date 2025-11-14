@@ -1,12 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { ArrowDown } from 'lucide-react';
-import { useChat } from './hooks';
+import { useChat, useSmartScroll, useKeyboardShortcuts } from './hooks';
 import {
   ChatMessage,
   ChatInput,
   EmptyState,
   ErrorMessage,
   LoadingIndicator,
+  TypingIndicator,
+  MessageSkeleton,
 } from './components';
 
 /**
@@ -32,48 +34,23 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated }) =>
 
   const messagesEndRef = useRef(null);
   const containerRef = useRef(null);
-  const [showScrollButton, setShowScrollButton] = useState(false);
-  const [autoScroll, setAutoScroll] = useState(true);
 
-  /**
-   * Detecta se usuário scrollou manualmente
-   */
-  const handleScroll = () => {
-    if (!containerRef.current) return;
+  // Smart scroll hook com badge de novas mensagens
+  const {
+    handleScroll,
+    scrollToBottom,
+    showNewMessageBadge,
+    newMessageCount,
+  } = useSmartScroll(messages, isStreaming, containerRef, messagesEndRef);
 
-    const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
-    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
-
-    // Considera "no final" se está a menos de 100px do bottom
-    const isNearBottom = distanceFromBottom < 100;
-
-    setAutoScroll(isNearBottom);
-    setShowScrollButton(!isNearBottom && messages.length > 0);
-  };
-
-  /**
-   * Scroll para o final (acionado por botão)
-   */
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'end'
-    });
-    setAutoScroll(true);
-  };
-
-  /**
-   * Auto-scroll inteligente quando novas mensagens chegam
-   * Apenas scroll automático se usuário estava no final
-   */
-  useEffect(() => {
-    if (autoScroll) {
-      messagesEndRef.current?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'end'
-      });
-    }
-  }, [messages, autoScroll]);
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    messages,
+    isStreaming,
+    scrollToBottom,
+    stopGeneration,
+    inputRef: null, // ChatInput gerencia seu próprio focus
+  });
 
   /**
    * Notifica componente pai quando session_id muda
@@ -106,14 +83,15 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated }) =>
     return await sendFeedback(messageId, rating, comment);
   };
 
-  // Loading inicial do histórico
+  // Loading inicial do histórico com skeleton
   if (isLoadingHistory && messages.length === 0) {
     return (
-      <div className="flex flex-col flex-1 bg-gradient-to-br from-primary-50 via-white to-primary-50 dark:from-dark-bg dark:via-dark-card dark:to-dark-bg overflow-hidden relative items-center justify-center">
-        <LoadingIndicator />
-        <p className="text-sm text-gray-600 dark:text-gray-400 mt-4">
-          Carregando conversa...
-        </p>
+      <div className="flex flex-col flex-1 bg-gradient-to-br from-primary-50 via-white to-primary-50 dark:from-dark-bg dark:via-dark-card dark:to-dark-bg overflow-hidden relative">
+        <div className="flex-1 overflow-y-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6">
+          <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
+            <MessageSkeleton count={3} />
+          </div>
+        </div>
       </div>
     );
   }
@@ -171,13 +149,13 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated }) =>
                 );
               })}
 
-              {/* Loading indicator se estiver esperando primeira resposta */}
+              {/* Typing indicator quando agente está processando */}
               {isLoading && messages.length > 0 && messages[messages.length - 1]?.type !== 'assistant' && (
-                <LoadingIndicator />
+                <TypingIndicator />
               )}
 
-              {/* Loading ao iniciar conversa */}
-              {isLoading && messages.length === 0 && <LoadingIndicator />}
+              {/* Typing indicator ao iniciar conversa */}
+              {isLoading && messages.length === 0 && <TypingIndicator />}
 
               {/* Mensagens de erro */}
               {error && <ErrorMessage message={error} />}
@@ -187,13 +165,19 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated }) =>
             </div>
           </div>
 
-          {/* Botão Scroll to Bottom - Aparece quando usuário sobe */}
-          {showScrollButton && (
+          {/* Botão Scroll to Bottom com badge de novas mensagens */}
+          {showNewMessageBadge && (
             <button
               onClick={scrollToBottom}
-              className="fixed bottom-24 sm:bottom-28 right-6 sm:right-8 z-20 p-3 bg-white dark:bg-dark-card border-2 border-gray-200 dark:border-dark-border rounded-full shadow-lg hover:shadow-xl hover:scale-110 active:scale-95 transition-all duration-200 group"
-              aria-label="Ir para o final"
+              className="fixed bottom-24 sm:bottom-28 right-6 sm:right-8 z-20 p-3 bg-white dark:bg-dark-card border-2 border-primary-500 dark:border-primary-400 rounded-full shadow-lg hover:shadow-xl hover:scale-110 active:scale-95 transition-all duration-200 group"
+              aria-label={`${newMessageCount} nova${newMessageCount > 1 ? 's' : ''} mensagem${newMessageCount > 1 ? 'ns' : ''}`}
             >
+              {/* Badge com contagem */}
+              {newMessageCount > 0 && (
+                <span className="absolute -top-2 -right-2 min-w-[24px] h-6 px-1.5 bg-primary-600 dark:bg-primary-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-md animate-bounce">
+                  {newMessageCount > 9 ? '9+' : newMessageCount}
+                </span>
+              )}
               <ArrowDown className="w-5 h-5 text-primary-600 dark:text-primary-400 group-hover:translate-y-0.5 transition-transform" />
             </button>
           )}

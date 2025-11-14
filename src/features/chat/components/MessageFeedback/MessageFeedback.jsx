@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ThumbsUp, ThumbsDown, MessageSquare, X } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 
 /**
  * Componente de Feedback para mensagens do assistente

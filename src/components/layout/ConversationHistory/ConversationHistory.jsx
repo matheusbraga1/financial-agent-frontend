@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { MessageSquare, Trash2, AlertCircle, Loader2, Clock, ChevronRight } from 'lucide-react';
 import { chatService } from '../../../features/chat/services';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -52,13 +52,7 @@ const ConversationHistory = ({ onSelectSession, currentSessionId }) => {
 
     try {
       await chatService.deleteSession(sessionId);
-      toast.success('Conversa excluída com sucesso', {
-        icon: '✓',
-        style: {
-          background: '#00884f',
-          color: '#fff',
-        },
-      });
+      toast.success('Conversa excluída com sucesso');
       setSessions(prev => prev.filter(s => s.session_id !== sessionId));
 
       if (sessionId === currentSessionId) {

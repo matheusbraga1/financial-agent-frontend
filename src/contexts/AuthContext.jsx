@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import authService from '../services/api/authService';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 
 /**
  * Context de autenticação
