@@ -16,6 +16,11 @@ import {
  * Usa mensagens de erro padronizadas e profissionais
  */
 class ChatService {
+  constructor() {
+    // Armazena o AbortController atual para permitir cancelamento
+    this.currentStreamController = null;
+  }
+
   /**
    * Envia mensagem e recebe resposta completa (sem streaming)
    * @param {string} question - Pergunta do usuário
@@ -35,6 +40,16 @@ class ChatService {
   }
 
   /**
+   * Aborta o streaming atual
+   */
+  abortStream() {
+    if (this.currentStreamController) {
+      this.currentStreamController.abort();
+      this.currentStreamController = null;
+    }
+  }
+
+  /**
    * Envia mensagem com resposta em streaming (SSE)
    * @param {string} question - Pergunta do usuário
    * @param {string|null} sessionId - ID da sessão
@@ -44,7 +59,13 @@ class ChatService {
    */
   async sendMessageStream(question, sessionId, onMessage, onError, onComplete) {
     const url = `${config.apiUrl}/chat/stream`;
-    const controller = new AbortController();
+
+    // Aborta stream anterior se existir
+    this.abortStream();
+
+    // Cria novo controller e armazena
+    this.currentStreamController = new AbortController();
+    const controller = this.currentStreamController;
     const timeoutId = setTimeout(() => controller.abort(), STREAM_TIMEOUT);
 
     try {
@@ -72,20 +93,26 @@ class ChatService {
       if (!response.ok) {
         const errorText = await response.text();
         let errorMessage = `Erro ${response.status}: ${response.statusText}`;
-        
+
         try {
           const errorJson = JSON.parse(errorText);
           errorMessage = errorJson.detail || errorMessage;
         } catch {
           // Se não for JSON, usar mensagem padrão
         }
-        
+
         throw new Error(errorMessage);
       }
 
       await this._processStream(response, onMessage, onComplete);
     } catch (error) {
       console.error('Erro no streaming:', error);
+
+      // Se foi abortado manualmente pelo usuário, não mostra erro
+      if (error.name === 'AbortError' && !controller.signal.aborted) {
+        // Silenciosamente retorna - usuário clicou em parar
+        return;
+      }
 
       let errorObj;
 
@@ -126,7 +153,10 @@ class ChatService {
       onError?.(formattedError);
     } finally {
       clearTimeout(timeoutId);
-      controller.abort();
+      // Limpa o controller se ainda for o atual
+      if (this.currentStreamController === controller) {
+        this.currentStreamController = null;
+      }
     }
   }
 

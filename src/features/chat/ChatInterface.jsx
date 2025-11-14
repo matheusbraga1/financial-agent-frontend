@@ -20,9 +20,11 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated }) =>
   const {
     messages,
     isLoading,
+    isStreaming,
     isLoadingHistory,
     error,
     sendMessage,
+    stopGeneration,
     clearMessages,
     sendFeedback,
     sessionId: currentSessionId
@@ -179,7 +181,9 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated }) =>
       <div className="flex-shrink-0 bg-gradient-to-t from-primary-50 dark:from-dark-bg to-transparent px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6">
         <ChatInput
           onSendMessage={sendMessage}
+          onStopGeneration={stopGeneration}
           isLoading={isLoading}
+          isStreaming={isStreaming}
         />
       </div>
     </div>

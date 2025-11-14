@@ -15,6 +15,7 @@ import { createUserMessage, createAssistantMessage } from '../utils/messageHelpe
 export const useChat = (useStreaming = true, initialSessionId = null) => {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState(null);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
@@ -103,6 +104,15 @@ export const useChat = (useStreaming = true, initialSessionId = null) => {
   }, []);
 
   /**
+   * Para a geração em andamento
+   */
+  const stopGeneration = useCallback(() => {
+    chatService.abortStream();
+    setIsStreaming(false);
+    setIsLoading(false);
+  }, []);
+
+  /**
    * Envia uma mensagem para o chat
    */
   const sendMessage = useCallback(
@@ -118,6 +128,7 @@ export const useChat = (useStreaming = true, initialSessionId = null) => {
       addMessage(userMessage);
 
       setIsLoading(true);
+      setIsStreaming(false);
       setError(null);
 
       let assistantId = null;
@@ -141,6 +152,7 @@ export const useChat = (useStreaming = true, initialSessionId = null) => {
         if (assistantId) removeMessage(assistantId);
       } finally {
         setIsLoading(false);
+        setIsStreaming(false);
       }
     },
     [useStreaming, addMessage, updateMessage, removeMessage]
@@ -174,12 +186,17 @@ export const useChat = (useStreaming = true, initialSessionId = null) => {
             break;
 
           case 'token':
+            // Quando recebe o primeiro token, seta isStreaming para true e isLoading para false
+            if (!contentBuffer) {
+              setIsLoading(false);
+              setIsStreaming(true);
+            }
             contentBuffer += data.content ?? '';
             updateMessage(assistantId, { content: contentBuffer });
             break;
 
           case 'metadata':
-            updateMessage(assistantId, { 
+            updateMessage(assistantId, {
               modelUsed: data.model_used,
             });
             // Armazena session_id retornado pelo backend
@@ -190,10 +207,12 @@ export const useChat = (useStreaming = true, initialSessionId = null) => {
 
           case 'done':
             // Streaming finalizado
+            setIsStreaming(false);
             break;
         }
       },
       (err) => {
+        setIsStreaming(false);
         throw err;
       },
       () => {
@@ -206,6 +225,9 @@ export const useChat = (useStreaming = true, initialSessionId = null) => {
         if (contentBuffer && assistantId) {
           updateMessage(assistantId, { content: contentBuffer });
         }
+
+        // Garante que isStreaming está false ao finalizar
+        setIsStreaming(false);
       }
     );
 
@@ -278,12 +300,14 @@ export const useChat = (useStreaming = true, initialSessionId = null) => {
     // Estado
     messages,
     isLoading,
+    isStreaming,
     isLoadingHistory,
     error,
     sessionId: sessionIdRef.current,
 
     // Métodos
     sendMessage,
+    stopGeneration,
     clearMessages,
     sendFeedback,
   };

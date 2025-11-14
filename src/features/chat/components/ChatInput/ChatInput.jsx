@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, Sparkles } from 'lucide-react';
+import { Send, Loader2, Sparkles, Square } from 'lucide-react';
 import {
   MAX_MESSAGE_LENGTH,
   CHARACTER_LIMIT_WARNING,
@@ -17,8 +17,9 @@ import {
  * - Totalmente responsivo (mobile-first)
  * - Acessibilidade completa
  * - Cores da marca Financial (#00884f verde, #bf9c4b dourado)
+ * - Botão de parar geração durante streaming
  */
-const ChatInput = ({ onSendMessage, isLoading }) => {
+const ChatInput = ({ onSendMessage, onStopGeneration, isLoading, isStreaming }) => {
   const [input, setInput] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const textareaRef = useRef(null);
@@ -36,7 +37,7 @@ const ChatInput = ({ onSendMessage, isLoading }) => {
     e.preventDefault();
     const trimmedInput = input.trim();
 
-    if (trimmedInput && !isLoading) {
+    if (trimmedInput && !isLoading && !isStreaming) {
       onSendMessage(trimmedInput);
       setInput('');
 
@@ -47,10 +48,17 @@ const ChatInput = ({ onSendMessage, isLoading }) => {
     }
   };
 
+  const handleStop = (e) => {
+    e.preventDefault();
+    onStopGeneration?.();
+  };
+
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit(e);
+      if (!isStreaming) {
+        handleSubmit(e);
+      }
     }
   };
 
@@ -64,7 +72,7 @@ const ChatInput = ({ onSendMessage, isLoading }) => {
   const remainingChars = MAX_MESSAGE_LENGTH - input.length;
   const isNearLimit = remainingChars < CHARACTER_LIMIT_WARNING;
   const isAtLimit = remainingChars === 0;
-  const canSubmit = input.trim() && !isLoading;
+  const canSubmit = input.trim() && !isLoading && !isStreaming;
 
   // Determinar cor do contador baseado em proximidade do limite
   const getCounterColor = () => {
@@ -112,7 +120,7 @@ const ChatInput = ({ onSendMessage, isLoading }) => {
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
             placeholder="Faça uma pergunta sobre a Financial Imobiliária..."
-            disabled={isLoading}
+            disabled={isLoading || isStreaming}
             rows={1}
             className="
               w-full px-4 sm:px-5 lg:px-6 py-3 sm:py-4 pr-20 sm:pr-28
@@ -156,38 +164,70 @@ const ChatInput = ({ onSendMessage, isLoading }) => {
               </div>
             )}
 
-            {/* Botão Enviar com estados visuais */}
-            <button
-              type="submit"
-              disabled={!canSubmit}
-              className={`
-                relative overflow-hidden
-                p-2.5 sm:p-3 lg:p-3.5
-                rounded-xl sm:rounded-2xl
-                font-medium text-white
-                transition-all duration-200 ease-out
-                flex items-center justify-center
-                min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px]
-                touch-manipulation
-                ${canSubmit
-                  ? 'bg-gradient-to-r from-primary-600 to-primary-500 dark:from-primary-500 dark:to-primary-400 hover:from-primary-700 hover:to-primary-600 dark:hover:from-primary-600 dark:hover:to-primary-500 hover:shadow-lg hover:shadow-primary-500/30 dark:hover:shadow-primary-900/50 hover:scale-105 active:scale-95 cursor-pointer'
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                }
-              `}
-              title={isLoading ? "Enviando..." : canSubmit ? "Enviar mensagem (Enter)" : "Digite uma mensagem"}
-              aria-label={isLoading ? "Enviando mensagem" : "Enviar mensagem"}
-            >
-              {/* Efeito de brilho no hover */}
-              {canSubmit && (
-                <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-              )}
+            {/* Botão com 3 estados: Enviar / Loading / Parar */}
+            {isStreaming ? (
+              /* Botão Parar - Ativo durante streaming */
+              <button
+                type="button"
+                onClick={handleStop}
+                className="
+                  relative overflow-hidden
+                  p-2.5 sm:p-3 lg:p-3.5
+                  rounded-xl sm:rounded-2xl
+                  font-medium text-white
+                  transition-all duration-200 ease-out
+                  flex items-center justify-center
+                  min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px]
+                  touch-manipulation
+                  bg-gradient-to-r from-red-600 to-red-500
+                  dark:from-red-500 dark:to-red-400
+                  hover:from-red-700 hover:to-red-600
+                  dark:hover:from-red-600 dark:hover:to-red-500
+                  hover:shadow-lg hover:shadow-red-500/30
+                  dark:hover:shadow-red-900/50
+                  hover:scale-105 active:scale-95
+                  cursor-pointer
+                  animate-pulse-soft
+                "
+                title="Parar geração"
+                aria-label="Parar geração"
+              >
+                <Square className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
+              </button>
+            ) : (
+              /* Botão Enviar / Loading */
+              <button
+                type="submit"
+                disabled={!canSubmit}
+                className={`
+                  relative overflow-hidden
+                  p-2.5 sm:p-3 lg:p-3.5
+                  rounded-xl sm:rounded-2xl
+                  font-medium text-white
+                  transition-all duration-200 ease-out
+                  flex items-center justify-center
+                  min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px]
+                  touch-manipulation
+                  ${canSubmit
+                    ? 'bg-gradient-to-r from-primary-600 to-primary-500 dark:from-primary-500 dark:to-primary-400 hover:from-primary-700 hover:to-primary-600 dark:hover:from-primary-600 dark:hover:to-primary-500 hover:shadow-lg hover:shadow-primary-500/30 dark:hover:shadow-primary-900/50 hover:scale-105 active:scale-95 cursor-pointer'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                  }
+                `}
+                title={isLoading ? "Enviando..." : canSubmit ? "Enviar mensagem (Enter)" : "Digite uma mensagem"}
+                aria-label={isLoading ? "Enviando mensagem" : "Enviar mensagem"}
+              >
+                {/* Efeito de brilho no hover */}
+                {canSubmit && !isLoading && (
+                  <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                )}
 
-              {isLoading ? (
-                <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
-              ) : (
-                <Send className="w-4 h-4 sm:w-5 sm:h-5" />
-              )}
-            </button>
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4 sm:w-5 sm:h-5" />
+                )}
+              </button>
+            )}
           </div>
         </div>
 
