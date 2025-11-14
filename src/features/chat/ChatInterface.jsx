@@ -118,25 +118,48 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated }) =>
     );
   }
 
+  // Determina se deve mostrar layout centrado (sem mensagens)
+  const isEmpty = messages.length === 0 && !isLoading;
+  const hasContent = messages.length > 0 || isLoading;
+
   return (
     <div className="flex flex-col flex-1 bg-gradient-to-br from-primary-50 via-white to-primary-50 dark:from-dark-bg dark:via-dark-card dark:to-dark-bg overflow-hidden relative">
-      {/* Container de mensagens - Responsivo com scroll inteligente */}
-      <div
-        ref={containerRef}
-        onScroll={handleScroll}
-        className="flex-1 overflow-y-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 scroll-smooth"
-      >
-        <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
-          {messages.length === 0 ? (
-            <EmptyState onSuggestionClick={sendMessage} />
-          ) : (
-            <>
+      {isEmpty ? (
+        /* Layout Centralizado - ChatGPT/Claude Style */
+        <div className="flex flex-col items-center justify-center flex-1 px-3 sm:px-4 md:px-6 py-8 sm:py-12 animate-fade-in">
+          <div className="w-full max-w-3xl mx-auto flex flex-col items-center justify-center flex-1 space-y-8">
+            {/* EmptyState Centralizado */}
+            <div className="flex-shrink-0">
+              <EmptyState onSuggestionClick={sendMessage} />
+            </div>
+
+            {/* Input Centralizado */}
+            <div className="w-full flex-shrink-0">
+              <ChatInput
+                onSendMessage={sendMessage}
+                onStopGeneration={stopGeneration}
+                isLoading={isLoading}
+                isStreaming={isStreaming}
+              />
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* Layout Normal - Com Mensagens */
+        <>
+          {/* Container de mensagens - Responsivo com scroll inteligente */}
+          <div
+            ref={containerRef}
+            onScroll={handleScroll}
+            className="flex-1 overflow-y-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 scroll-smooth animate-fade-in"
+          >
+            <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
               {messages.map((message, index) => {
                 // Detectar se é a última mensagem do assistente e está streamando
                 const isLastAssistantMessage =
                   index === messages.length - 1 &&
                   message.type === 'assistant';
-                const isStreamingMessage = isLoading && isLastAssistantMessage;
+                const isStreamingMessage = isStreaming && isLastAssistantMessage;
 
                 return (
                   <ChatMessage
@@ -152,40 +175,40 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated }) =>
               {isLoading && messages.length > 0 && messages[messages.length - 1]?.type !== 'assistant' && (
                 <LoadingIndicator />
               )}
-              
+
               {/* Loading ao iniciar conversa */}
               {isLoading && messages.length === 0 && <LoadingIndicator />}
-            </>
+
+              {/* Mensagens de erro */}
+              {error && <ErrorMessage message={error} />}
+
+              {/* Âncora para scroll automático */}
+              <div ref={messagesEndRef} />
+            </div>
+          </div>
+
+          {/* Botão Scroll to Bottom - Aparece quando usuário sobe */}
+          {showScrollButton && (
+            <button
+              onClick={scrollToBottom}
+              className="fixed bottom-24 sm:bottom-28 right-6 sm:right-8 z-20 p-3 bg-white dark:bg-dark-card border-2 border-gray-200 dark:border-dark-border rounded-full shadow-lg hover:shadow-xl hover:scale-110 active:scale-95 transition-all duration-200 group"
+              aria-label="Ir para o final"
+            >
+              <ArrowDown className="w-5 h-5 text-primary-600 dark:text-primary-400 group-hover:translate-y-0.5 transition-transform" />
+            </button>
           )}
 
-          {/* Mensagens de erro */}
-          {error && <ErrorMessage message={error} />}
-
-          {/* Âncora para scroll automático */}
-          <div ref={messagesEndRef} />
-        </div>
-      </div>
-
-      {/* Botão Scroll to Bottom - Aparece quando usuário sobe */}
-      {showScrollButton && (
-        <button
-          onClick={scrollToBottom}
-          className="fixed bottom-24 sm:bottom-28 right-6 sm:right-8 z-20 p-3 bg-white dark:bg-dark-card border-2 border-gray-200 dark:border-dark-border rounded-full shadow-lg hover:shadow-xl hover:scale-110 active:scale-95 transition-all duration-200 group"
-          aria-label="Ir para o final"
-        >
-          <ArrowDown className="w-5 h-5 text-primary-600 dark:text-primary-400 group-hover:translate-y-0.5 transition-transform" />
-        </button>
+          {/* Input de mensagens - Fixo no Bottom */}
+          <div className="flex-shrink-0 bg-gradient-to-t from-primary-50 dark:from-dark-bg to-transparent px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6">
+            <ChatInput
+              onSendMessage={sendMessage}
+              onStopGeneration={stopGeneration}
+              isLoading={isLoading}
+              isStreaming={isStreaming}
+            />
+          </div>
+        </>
       )}
-
-      {/* Input de mensagens - Responsivo */}
-      <div className="flex-shrink-0 bg-gradient-to-t from-primary-50 dark:from-dark-bg to-transparent px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6">
-        <ChatInput
-          onSendMessage={sendMessage}
-          onStopGeneration={stopGeneration}
-          isLoading={isLoading}
-          isStreaming={isStreaming}
-        />
-      </div>
     </div>
   );
 };
