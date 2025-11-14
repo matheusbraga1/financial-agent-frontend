@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Info, X, LogIn, UserPlus } from 'lucide-react';
 import Sidebar from '../components/layout/Sidebar/Sidebar';
@@ -24,23 +24,51 @@ const Chat = () => {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
 
+  // Ref para evitar loop infinito ao atualizar sessionId
+  const isUpdatingSessionRef = useRef(false);
+
+  /**
+   * Handler: Nova conversa
+   * Limpa sessão atual e força recriação do chat
+   */
   const handleNewConversation = useCallback(() => {
     setCurrentSessionId(null);
     setForceNewConversation(true);
-    requestAnimationFrame(() => {
+    // Usa setTimeout em vez de requestAnimationFrame para melhor previsibilidade
+    setTimeout(() => {
       setForceNewConversation(false);
-    });
+    }, 0);
   }, []);
 
+  /**
+   * Handler: Selecionar sessão existente
+   */
   const handleSelectSession = useCallback((sessionId) => {
     setCurrentSessionId(sessionId);
   }, []);
 
+  /**
+   * Handler: Sessão criada pelo backend
+   * Usa ref para evitar loops ao atualizar o estado
+   */
   const handleSessionCreated = useCallback((sessionId) => {
-    if (sessionId && sessionId !== currentSessionId) {
-      setCurrentSessionId(sessionId);
-    }
-  }, [currentSessionId]);
+    // Evita loops verificando se já está atualizando
+    if (isUpdatingSessionRef.current) return;
+
+    isUpdatingSessionRef.current = true;
+    setCurrentSessionId(prevSessionId => {
+      // Só atualiza se realmente mudou
+      if (sessionId && sessionId !== prevSessionId) {
+        return sessionId;
+      }
+      return prevSessionId;
+    });
+
+    // Libera flag após atualização
+    setTimeout(() => {
+      isUpdatingSessionRef.current = false;
+    }, 100);
+  }, []);
 
   const handleDismissBanner = useCallback(() => {
     setShowGuestBanner(false);

@@ -23,16 +23,36 @@ export const useChat = (useStreaming = true, initialSessionId = null) => {
   const sessionIdRef = useRef(initialSessionId || generateId());
   const abortControllerRef = useRef(null);
 
+  // Ref para rastrear a última sessão carregada e evitar carregamentos duplicados
+  const previousSessionIdRef = useRef(null);
+  const isLoadingRef = useRef(false);
+
   /**
    * Carrega histórico de mensagens ao montar o componente
    * Apenas se usuário estiver autenticado e houver sessionId válido
    *
    * FIX: Limpa mensagens imediatamente ao trocar de sessão para evitar flickering
+   * FIX: Usa ref para evitar carregamentos duplicados
    */
   useEffect(() => {
     const loadHistory = async () => {
       // Não carrega se não está autenticado ou não tem sessionId
-      if (!isAuthenticated || !initialSessionId) return;
+      if (!isAuthenticated || !initialSessionId) {
+        // Se não tem sessionId, limpa mensagens e histórico
+        if (!initialSessionId && messages.length === 0) {
+          previousSessionIdRef.current = null;
+        }
+        return;
+      }
+
+      // Evita carregamento duplicado da mesma sessão
+      if (previousSessionIdRef.current === initialSessionId || isLoadingRef.current) {
+        return;
+      }
+
+      // Marca que está carregando
+      isLoadingRef.current = true;
+      previousSessionIdRef.current = initialSessionId;
 
       // FIX: Limpa mensagens antigas IMEDIATAMENTE ao trocar de sessão
       // Isso previne flickering e exibição de conteúdo errado
@@ -47,9 +67,9 @@ export const useChat = (useStreaming = true, initialSessionId = null) => {
         // chatService.getChatHistory já retorna dados adaptados
         const history = await chatService.getChatHistory(initialSessionId);
 
-        // Só atualiza se realmente há mensagens
+        // Só atualiza se realmente há mensagens E ainda é a sessão atual
         const loadedMessages = history.messages || [];
-        if (loadedMessages.length > 0) {
+        if (loadedMessages.length > 0 && previousSessionIdRef.current === initialSessionId) {
           setMessages(loadedMessages);
         }
       } catch (error) {
@@ -64,6 +84,7 @@ export const useChat = (useStreaming = true, initialSessionId = null) => {
         // 404 e outros erros são silenciosos (normal para novas conversas)
       } finally {
         setIsLoadingHistory(false);
+        isLoadingRef.current = false;
       }
     };
 

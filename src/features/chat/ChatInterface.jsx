@@ -35,6 +35,9 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated }) =>
   const messagesEndRef = useRef(null);
   const containerRef = useRef(null);
 
+  // Ref para armazenar callback sem causar re-renders
+  const onSessionCreatedRef = useRef(onSessionCreated);
+
   // Smart scroll hook com badge de novas mensagens
   const {
     handleScroll,
@@ -52,14 +55,20 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated }) =>
     inputRef: null, // ChatInput gerencia seu próprio focus
   });
 
+  // Atualiza ref quando callback muda
+  useEffect(() => {
+    onSessionCreatedRef.current = onSessionCreated;
+  }, [onSessionCreated]);
+
   /**
    * Notifica componente pai quando session_id muda
+   * Usa ref para evitar loops infinitos causados por callback recriado
    */
   useEffect(() => {
     if (currentSessionId && currentSessionId !== sessionId) {
-      onSessionCreated?.(currentSessionId);
+      onSessionCreatedRef.current?.(currentSessionId);
     }
-  }, [currentSessionId, sessionId, onSessionCreated]);
+  }, [currentSessionId, sessionId]); // onSessionCreated removido das dependências!
 
   /**
    * REMOVIDO: Carregamento duplicado de histórico
@@ -69,6 +78,7 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated }) =>
 
   /**
    * Cria nova conversa quando solicitado
+   * clearMessages é memoizado, então é seguro usar como dependência
    */
   useEffect(() => {
     if (forceNewConversation) {
