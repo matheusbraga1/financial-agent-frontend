@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import PropTypes from 'prop-types';
 
 /**
  * Tooltip reutilizável para Sidebar
@@ -42,6 +43,13 @@ const SidebarTooltip = memo(({ content, children, position = 'right', delay = 0 
     </div>
   );
 });
+
+SidebarTooltip.propTypes = {
+  content: PropTypes.node.isRequired,
+  children: PropTypes.node.isRequired,
+  position: PropTypes.oneOf(['right', 'left', 'bottom']),
+  delay: PropTypes.number,
+};
 
 SidebarTooltip.displayName = 'SidebarTooltip';
 

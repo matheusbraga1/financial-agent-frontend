@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import PropTypes from 'prop-types';
 import { X, PanelLeftClose, PanelLeft, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ThemeToggle } from '../../../common';
@@ -115,6 +116,12 @@ const SidebarHeader = memo(({ isCollapsed, onToggleCollapse, onClose }) => {
     </div>
   );
 });
+
+SidebarHeader.propTypes = {
+  isCollapsed: PropTypes.bool.isRequired,
+  onToggleCollapse: PropTypes.func.isRequired,
+  onClose: PropTypes.func,
+};
 
 SidebarHeader.displayName = 'SidebarHeader';
 

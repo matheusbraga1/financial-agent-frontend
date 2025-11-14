@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import PropTypes from 'prop-types';
 import { MessageSquare } from 'lucide-react';
 import { motion } from 'framer-motion';
 import SidebarTooltip from './SidebarTooltip';
@@ -77,6 +78,11 @@ const SidebarNewConversation = memo(({ isCollapsed, onClick }) => {
     </div>
   );
 });
+
+SidebarNewConversation.propTypes = {
+  isCollapsed: PropTypes.bool.isRequired,
+  onClick: PropTypes.func.isRequired,
+};
 
 SidebarNewConversation.displayName = 'SidebarNewConversation';
 

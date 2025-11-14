@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import PropTypes from 'prop-types';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,7 +12,6 @@ import {
   SidebarUserMenu,
   SidebarSearch,
   SidebarAbout,
-  HistorySkeleton,
 } from './components';
 import { useSidebarState, useSidebarKeyboard } from './hooks';
 
@@ -244,5 +244,15 @@ const Sidebar = ({
     </>
   );
 };
+
+Sidebar.propTypes = {
+  isOpen: PropTypes.bool,
+  onClose: PropTypes.func,
+  currentSessionId: PropTypes.string,
+  onSelectSession: PropTypes.func,
+  onNewConversation: PropTypes.func,
+};
+
+Sidebar.displayName = 'Sidebar';
 
 export default Sidebar;
