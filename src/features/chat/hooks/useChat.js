@@ -193,6 +193,14 @@ export const useChat = (useStreaming = true, initialSessionId = null) => {
             });
             break;
 
+          case 'confidence':
+            if (typeof data.confidence === 'number') {
+              updateMessage(assistantId, {
+                confidence: data.confidence,
+              });
+            }
+            break;
+
           case 'token':
             // Quando recebe o primeiro token, seta isStreaming para true e isLoading para false
             if (!contentBuffer) {
@@ -210,6 +218,12 @@ export const useChat = (useStreaming = true, initialSessionId = null) => {
             // Armazena session_id retornado pelo backend
             if (data.session_id) {
               backendSessionId = data.session_id;
+            }
+            // Atualiza confidence se vier no metadata também
+            if (typeof data.confidence === 'number') {
+              updateMessage(assistantId, {
+                confidence: data.confidence,
+              });
             }
             break;
 
@@ -253,14 +267,15 @@ export const useChat = (useStreaming = true, initialSessionId = null) => {
     );
 
     // Atualiza session_id com o retornado pelo backend
-    if (response.session_id) {
-      sessionIdRef.current = response.session_id;
+    if (response.sessionId) {
+      sessionIdRef.current = response.sessionId;
     }
 
     updateMessage(assistantId, {
-      content: response?.answer ?? '',
+      content: response?.content ?? '',
       sources: Array.isArray(response?.sources) ? response.sources : [],
-      modelUsed: response?.model_used ?? '',
+      modelUsed: response?.modelUsed ?? '',
+      confidence: response?.confidence,
     });
   };
 

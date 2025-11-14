@@ -7,6 +7,7 @@ import {
   adaptChatHistory,
   adaptSessions,
   adaptStreamEvent,
+  adaptChatResponse,
   prepareFeedbackPayload,
 } from '../adapters/chatAdapter';
 
@@ -25,7 +26,7 @@ class ChatService {
    * Envia mensagem e recebe resposta completa (sem streaming)
    * @param {string} question - Pergunta do usuário
    * @param {string|null} sessionId - ID da sessão (opcional)
-   * @returns {Promise<{answer: string, sources: Array, model_used: string, session_id: string}>}
+   * @returns {Promise<{content: string, sources: Array, modelUsed: string, sessionId: string}>}
    */
   async sendMessage(question, sessionId = null) {
     try {
@@ -33,7 +34,9 @@ class ChatService {
         question,
         session_id: sessionId
       });
-      return response.data;
+
+      // Adapta a resposta do backend para o formato do frontend
+      return adaptChatResponse(response.data);
     } catch (error) {
       throw handleApiError(error);
     }
@@ -224,8 +227,14 @@ class ChatService {
     if (!payload) return;
 
     try {
-      const data = JSON.parse(payload);
-      onMessage?.(data);
+      const rawData = JSON.parse(payload);
+
+      // Adapta o evento SSE do backend para o formato esperado pelo frontend
+      const adaptedData = adaptStreamEvent(rawData);
+
+      if (adaptedData) {
+        onMessage?.(adaptedData);
+      }
     } catch (e) {
       console.error('Erro ao parsear SSE:', e, 'Payload:', payload);
     }
