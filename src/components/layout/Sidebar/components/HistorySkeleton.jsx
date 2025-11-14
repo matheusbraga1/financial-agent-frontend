@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import PropTypes from 'prop-types';
 
 /**
  * Skeleton loading para histórico de conversas
@@ -38,6 +39,10 @@ const HistorySkeleton = memo(({ count = 5 }) => {
     </div>
   );
 });
+
+HistorySkeleton.propTypes = {
+  count: PropTypes.number,
+};
 
 HistorySkeleton.displayName = 'HistorySkeleton';
 
