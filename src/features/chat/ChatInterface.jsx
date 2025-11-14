@@ -166,7 +166,7 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated }) =>
                     key={message.id}
                     message={message}
                     isStreaming={isStreamingMessage}
-                    onFeedbackSent={handleFeedback}
+                    onFeedback={handleFeedback}
                   />
                 );
               })}
