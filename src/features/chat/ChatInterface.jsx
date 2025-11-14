@@ -107,7 +107,7 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated }) =>
   // Loading inicial do histórico
   if (isLoadingHistory && messages.length === 0) {
     return (
-      <div className="flex flex-col flex-1 bg-neutral-50 dark:bg-dark-bg overflow-hidden relative items-center justify-center">
+      <div className="flex flex-col flex-1 bg-gradient-to-br from-primary-50 via-white to-primary-50 dark:from-dark-bg dark:via-dark-card dark:to-dark-bg overflow-hidden relative items-center justify-center">
         <LoadingIndicator />
         <p className="text-sm text-gray-600 dark:text-gray-400 mt-4">
           Carregando conversa...
@@ -117,7 +117,7 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated }) =>
   }
 
   return (
-    <div className="flex flex-col flex-1 bg-neutral-50 dark:bg-dark-bg overflow-hidden relative">
+    <div className="flex flex-col flex-1 bg-gradient-to-br from-primary-50 via-white to-primary-50 dark:from-dark-bg dark:via-dark-card dark:to-dark-bg overflow-hidden relative">
       {/* Container de mensagens - Responsivo com scroll inteligente */}
       <div
         ref={containerRef}
@@ -176,7 +176,7 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated }) =>
       )}
 
       {/* Input de mensagens - Responsivo */}
-      <div className="flex-shrink-0 bg-gradient-to-t from-neutral-50 dark:from-dark-bg to-transparent px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6">
+      <div className="flex-shrink-0 bg-gradient-to-t from-primary-50 dark:from-dark-bg to-transparent px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6">
         <ChatInput
           onSendMessage={sendMessage}
           isLoading={isLoading}
