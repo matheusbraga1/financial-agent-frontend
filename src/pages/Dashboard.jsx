@@ -22,13 +22,29 @@ const Dashboard = () => {
   };
 
   const handleStartChat = () => {
+    navigate('/chat', { state: { newConversation: true } });
+  };
+
+  const handleNewConversation = () => {
+    navigate('/chat', { state: { newConversation: true } });
+    setIsSidebarOpen(false);
+  };
+
+  const handleSelectSession = (sessionId) => {
     navigate('/chat');
+    setIsSidebarOpen(false);
   };
 
   return (
     <div className="flex h-screen overflow-hidden bg-gradient-to-br from-primary-50 via-white to-primary-50 dark:from-dark-bg dark:via-dark-card dark:to-dark-bg">
       {/* Sidebar */}
-      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+      <Sidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        currentSessionId={null}
+        onSelectSession={handleSelectSession}
+        onNewConversation={handleNewConversation}
+      />
 
       {/* Conteúdo principal */}
       <div className="flex-1 flex flex-col h-full overflow-hidden">

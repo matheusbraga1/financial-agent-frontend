@@ -42,6 +42,16 @@ const Sidebar = ({
   const navigate = useNavigate();
   const location = useLocation();
 
+  /**
+   * Handler: Nova conversa
+   */
+  const handleNewConversation = useCallback(() => {
+    onNewConversation?.();
+    if (onClose && isOpen) {
+      onClose();
+    }
+  }, [onNewConversation, onClose, isOpen]);
+
   // Keyboard shortcuts
   useSidebarKeyboard({
     onNewConversation: handleNewConversation,
@@ -53,16 +63,6 @@ const Sidebar = ({
     showUserMenu: state.showUserMenu,
     showInfo: state.showInfo,
   });
-
-  /**
-   * Handler: Nova conversa
-   */
-  function handleNewConversation() {
-    onNewConversation?.();
-    if (onClose && isOpen) {
-      onClose();
-    }
-  }
 
   /**
    * Handler: Selecionar sessão
