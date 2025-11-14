@@ -67,9 +67,10 @@ export const useChat = (useStreaming = true, initialSessionId = null) => {
         // chatService.getChatHistory já retorna dados adaptados
         const history = await chatService.getChatHistory(initialSessionId);
 
-        // Só atualiza se realmente há mensagens E ainda é a sessão atual
+        // Atualiza mensagens se ainda é a sessão atual
+        // FIX: Remove condição de loadedMessages.length > 0 para permitir conversas vazias
         const loadedMessages = history.messages || [];
-        if (loadedMessages.length > 0 && previousSessionIdRef.current === initialSessionId) {
+        if (previousSessionIdRef.current === initialSessionId) {
           setMessages(loadedMessages);
         }
       } catch (error) {
