@@ -9,13 +9,13 @@ import logo from '../assets/img/financial-logo.png';
 
 // Schema de validação com Zod
 const loginSchema = z.object({
-  email: z
+  username: z
     .string()
-    .min(1, 'Email é obrigatório')
-    .email('Email inválido'),
+    .min(3, 'Nome de usuário deve ter no mínimo 3 caracteres')
+    .max(50, 'Nome de usuário muito longo'),
   password: z
     .string()
-    .min(8, 'Senha deve ter no mínimo 8 caracteres'),
+    .min(6, 'Senha deve ter no mínimo 6 caracteres'),
 });
 
 const Login = () => {
@@ -39,13 +39,13 @@ const Login = () => {
   } = useForm({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: '',
+      username: '',
       password: '',
     },
   });
 
   const onSubmit = async (data) => {
-    const result = await login(data.email, data.password);
+    const result = await login(data.username, data.password);
 
     if (result.success) {
       // Redireciona para a página que o usuário tentou acessar, ou dashboard
@@ -77,28 +77,28 @@ const Login = () => {
         {/* Formulário - Responsivo */}
         <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl border border-gray-100 dark:border-dark-border p-6 sm:p-8">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 sm:space-y-6">
-            {/* Email */}
+            {/* Username */}
             <div>
               <label
-                htmlFor="email"
+                htmlFor="username"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >
-                Email
+                Usuário ou Email
               </label>
               <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                {...register('email')}
+                id="username"
+                type="text"
+                autoComplete="username"
+                {...register('username')}
                 className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg border text-sm sm:text-base ${
-                  errors.email
+                  errors.username
                     ? 'border-red-500 focus:ring-red-500'
                     : 'border-gray-300 dark:border-dark-border focus:ring-primary-500 dark:focus:ring-primary-600'
                 } bg-white dark:bg-dark-bg text-gray-900 dark:text-white focus:outline-none focus:ring-2 transition-colors`}
-                placeholder="seu@email.com"
+                placeholder="seu_usuario"
               />
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-500">{errors.email.message}</p>
+              {errors.username && (
+                <p className="mt-1 text-sm text-red-500">{errors.username.message}</p>
               )}
             </div>
 

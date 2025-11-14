@@ -36,6 +36,7 @@ export const adaptHistoryMessage = (backendMessage) => {
     sources = [],
     model_used,
     confidence,
+    persisted,
     timestamp,
   } = backendMessage;
 
@@ -65,6 +66,7 @@ export const adaptHistoryMessage = (backendMessage) => {
     sources: Array.isArray(sources) ? sources : [],
     modelUsed: model_used || '',
     confidence: typeof confidence === 'number' ? confidence : undefined,
+    persisted: typeof persisted === 'boolean' ? persisted : false,
   };
 };
 
@@ -194,6 +196,7 @@ export const adaptStreamEvent = (sseData) => {
     model_used: sseData.model_used,
     session_id: sseData.session_id,
     message_id: sseData.message_id,
+    persisted: sseData.persisted,
   };
 };
 

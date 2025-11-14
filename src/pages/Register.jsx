@@ -10,21 +10,21 @@ import logo from '../assets/img/financial-logo.png';
 // Schema de validação com Zod
 const registerSchema = z
   .object({
-    name: z
+    username: z
       .string()
-      .min(3, 'Nome deve ter no mínimo 3 caracteres')
-      .max(100, 'Nome muito longo'),
+      .min(3, 'Nome de usuário deve ter no mínimo 3 caracteres')
+      .max(50, 'Nome de usuário muito longo')
+      .regex(
+        /^[a-zA-Z0-9_]+$/,
+        'Use apenas letras, números e underscore'
+      ),
     email: z
       .string()
       .min(1, 'Email é obrigatório')
       .email('Email inválido'),
     password: z
       .string()
-      .min(8, 'Senha deve ter no mínimo 8 caracteres')
-      .regex(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-        'Senha deve conter letras maiúsculas, minúsculas e números'
-      ),
+      .min(8, 'Senha deve ter no mínimo 8 caracteres'),
     confirmPassword: z
       .string()
       .min(1, 'Confirme sua senha'),
@@ -56,7 +56,7 @@ const Register = () => {
   } = useForm({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      name: '',
+      username: '',
       email: '',
       password: '',
       confirmPassword: '',
@@ -64,7 +64,7 @@ const Register = () => {
   });
 
   const onSubmit = async (data) => {
-    const result = await registerUser(data.email, data.password, data.name);
+    const result = await registerUser(data.username, data.email, data.password);
 
     if (result.success) {
       // Após registro, redireciona para dashboard
@@ -95,29 +95,32 @@ const Register = () => {
         {/* Formulário - Responsivo */}
         <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl border border-gray-100 dark:border-dark-border p-6 sm:p-8">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-5">
-            {/* Nome */}
+            {/* Username */}
             <div>
               <label
-                htmlFor="name"
+                htmlFor="username"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >
-                Nome completo
+                Nome de usuário
               </label>
               <input
-                id="name"
+                id="username"
                 type="text"
-                autoComplete="name"
-                {...register('name')}
+                autoComplete="username"
+                {...register('username')}
                 className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg border text-sm sm:text-base ${
-                  errors.name
+                  errors.username
                     ? 'border-red-500 focus:ring-red-500'
                     : 'border-gray-300 dark:border-dark-border focus:ring-primary-500 dark:focus:ring-primary-600'
                 } bg-white dark:bg-dark-bg text-gray-900 dark:text-white focus:outline-none focus:ring-2 transition-colors`}
-                placeholder="Seu nome"
+                placeholder="seu_usuario"
               />
-              {errors.name && (
-                <p className="mt-1 text-sm text-red-500">{errors.name.message}</p>
+              {errors.username && (
+                <p className="mt-1 text-sm text-red-500">{errors.username.message}</p>
               )}
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Apenas letras, números e underscore
+              </p>
             </div>
 
             {/* Email */}
@@ -182,7 +185,7 @@ const Register = () => {
                 <p className="mt-1 text-sm text-red-500">{errors.password.message}</p>
               )}
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Mínimo 8 caracteres com letras maiúsculas, minúsculas e números
+                Mínimo 8 caracteres
               </p>
             </div>
 
