@@ -201,10 +201,16 @@ export const useChat = (useStreaming = true, initialSessionId = null) => {
       question,
       sessionIdRef.current,
       (data) => {
-        // Cria mensagem do assistente no primeiro evento
-        if (!assistantId && (data?.type === 'token' || data?.type === 'sources' || data?.type === 'metadata')) {
+        // Cria mensagem do assistente no primeiro evento (qualquer tipo exceto 'done' ou 'error')
+        if (!assistantId && (data?.type === 'token' || data?.type === 'sources' || data?.type === 'confidence' || data?.type === 'metadata')) {
           const assistantMessage = createAssistantMessage();
           assistantId = addMessage(assistantMessage);
+
+          // FIX: Seta isStreaming imediatamente ao criar a mensagem do assistente
+          // Isso previne mostrar "Sem conteúdo" durante o fallback GROQ→Ollama
+          // quando o backend demora para enviar o primeiro token
+          setIsLoading(false);
+          setIsStreaming(true);
         }
 
         // Processa diferentes tipos de eventos SSE
@@ -224,11 +230,7 @@ export const useChat = (useStreaming = true, initialSessionId = null) => {
             break;
 
           case 'token':
-            // Quando recebe o primeiro token, seta isStreaming para true e isLoading para false
-            if (!contentBuffer) {
-              setIsLoading(false);
-              setIsStreaming(true);
-            }
+            // Acumula conteúdo e atualiza mensagem
             contentBuffer += data.content ?? '';
             updateMessage(assistantId, { content: contentBuffer });
             break;

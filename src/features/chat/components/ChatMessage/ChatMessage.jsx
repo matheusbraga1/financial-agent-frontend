@@ -279,7 +279,11 @@ const ChatMessage = memo(({ message, isStreaming = false, onFeedback, feedbackSt
                 )}
               </>
             ) : isStreaming ? (
-              <span className="inline-block w-1.5 h-5 bg-primary-600 dark:bg-primary-500 animate-blink align-middle" />
+              // FIX: Mostra mensagem de aguardando durante fallback GROQ→Ollama
+              <span className="flex items-center gap-2 text-gray-500 dark:text-gray-400 italic text-sm">
+                <span className="inline-block w-1.5 h-5 bg-primary-600 dark:bg-primary-500 animate-blink" />
+                Aguardando resposta...
+              </span>
             ) : (
               <span className="text-gray-400 dark:text-gray-500 italic text-sm">Sem conteúdo</span>
             )}

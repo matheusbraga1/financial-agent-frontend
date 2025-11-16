@@ -1,5 +1,9 @@
 export const API_TIMEOUT = 30000;
-export const STREAM_TIMEOUT = 120000;
+
+// FIX: Aumentado de 120s para 300s (5 minutos) para acomodar fallback GROQ→Ollama
+// Quando GROQ falha, o backend faz fallback para Ollama, que pode demorar mais para responder,
+// especialmente em hardware limitado ou quando precisa carregar o modelo pela primeira vez
+export const STREAM_TIMEOUT = 300000; // 5 minutos
 
 export const HTTP_STATUS = {
   OK: 200,
