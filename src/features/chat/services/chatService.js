@@ -214,19 +214,26 @@ class ChatService {
   }
 
   /**
-   * Busca todas as sessões do usuário autenticado
-   * @param {number} limit - Limite de sessões
-   * @returns {Promise<Array<{session_id: string, created_at: Date, message_count: number, last_message: string}>>}
+   * Busca todas as sessões do usuário autenticado com paginação
+   * @param {number} limit - Limite de sessões por página
+   * @param {number} offset - Offset para paginação
+   * @returns {Promise<{sessions: Array, total: number, limit: number, offset: number, has_more: boolean}>}
    */
-  async getUserSessions(limit = 100) {
+  async getUserSessions(limit = 20, offset = 0) {
     try {
-      const params = { limit };
+      const params = { limit, offset };
       const response = await apiClient.get('/chat/sessions', { params });
 
-      // Backend retorna { sessions: [...], total: N }
-      // Adaptador converte para array de sessões formatadas
-      const backendSessions = response.data?.sessions || [];
-      return adaptSessions(backendSessions);
+      // Backend retorna { sessions: [...], total: N, limit: N, offset: N, has_more: boolean }
+      const { sessions = [], total = 0, has_more = false } = response.data;
+
+      return {
+        sessions: adaptSessions(sessions),
+        total,
+        limit,
+        offset,
+        has_more,
+      };
     } catch (error) {
       throw handleApiError(error);
     }

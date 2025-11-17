@@ -65,6 +65,7 @@ export const adaptHistoryMessage = (backendMessage) => {
     sources: Array.isArray(sources) ? sources : [],
     modelUsed: model_used || '',
     confidence: typeof confidence === 'number' ? confidence : undefined,
+    messageId: message_id, // ID para usar no feedback
   };
 };
 
@@ -194,6 +195,7 @@ export const adaptStreamEvent = (sseData) => {
     model_used: sseData.model_used,
     session_id: sseData.session_id,
     message_id: sseData.message_id,
+    persisted: sseData.persisted,
   };
 };
 

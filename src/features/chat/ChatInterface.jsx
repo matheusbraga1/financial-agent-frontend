@@ -8,6 +8,7 @@ import {
   ErrorMessage,
   LoadingIndicator,
 } from './components';
+import ModelSelector from './components/ModelSelector';
 
 /**
  * Interface principal do chat
@@ -32,6 +33,7 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated }) =>
   const containerRef = useRef(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
+  const [selectedModel, setSelectedModel] = useState(null);
 
   /**
    * Detecta se usuário scrollou manualmente
@@ -177,10 +179,30 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated }) =>
 
       {/* Input de mensagens - Responsivo */}
       <div className="flex-shrink-0 bg-gradient-to-t from-neutral-50 dark:from-dark-bg to-transparent px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6">
-        <ChatInput
-          onSendMessage={sendMessage}
-          isLoading={isLoading}
-        />
+        <div className="max-w-4xl mx-auto space-y-3">
+          {/* Barra de configurações - ModelSelector */}
+          <div className="flex items-center justify-between px-2">
+            <ModelSelector
+              onModelChange={(modelInfo) => {
+                setSelectedModel(modelInfo);
+                console.log('Modelo selecionado:', modelInfo);
+              }}
+              className="flex-shrink-0"
+            />
+            {selectedModel && (
+              <div className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">
+                <span className="opacity-70">Temperatura: </span>
+                <span className="font-medium">{selectedModel.temperature}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Input de chat */}
+          <ChatInput
+            onSendMessage={sendMessage}
+            isLoading={isLoading}
+          />
+        </div>
       </div>
     </div>
   );

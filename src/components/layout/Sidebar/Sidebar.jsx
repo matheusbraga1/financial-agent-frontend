@@ -13,6 +13,7 @@ import {
   MessageSquare,
   Sparkles,
   Search,
+  FileText,
 } from "lucide-react";
 import { useAuth } from "../../../contexts/AuthContext";
 import ConversationHistory from "../ConversationHistory/ConversationHistory";
@@ -345,6 +346,20 @@ const Sidebar = ({
                     <LayoutDashboard className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                     <span>Dashboard</span>
                   </button>
+
+                  {user?.is_admin && (
+                    <button
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        navigate("/documents");
+                        if (onClose && isOpen) onClose();
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-hover transition-colors"
+                    >
+                      <FileText className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                      <span>Documentos</span>
+                    </button>
+                  )}
 
                   <button
                     onClick={() => {

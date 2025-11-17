@@ -63,19 +63,24 @@ export const AuthProvider = ({ children }) => {
   const login = useCallback(async (email, password) => {
     setLoading(true);
     try {
-      // Faz login e recebe o token
+      // Faz login e recebe os tokens
       const response = await authService.login(email, password);
-      const { access_token } = response;
+      const { access_token, refresh_token } = response;
 
-      // Armazena o token
+      // Armazena os tokens
       authService.setToken(access_token);
       setToken(access_token);
+
+      // Armazena o refresh token se disponível
+      if (refresh_token) {
+        authService.setRefreshToken(refresh_token);
+      }
 
       // Busca os dados do usuário
       const userData = await authService.getCurrentUser();
       setUser(userData);
 
-      toast.success(`Bem-vindo, ${userData.name || userData.email}!`);
+      toast.success(`Bem-vindo, ${userData.username || userData.email}!`);
       return { success: true };
     } catch (error) {
       toast.error(error.message || 'Erro ao fazer login');
@@ -115,13 +120,15 @@ export const AuthProvider = ({ children }) => {
       // Chama o endpoint de logout (revoga o token)
       await authService.logout();
 
-      // Limpa o estado local
+      // Limpa o estado local e tokens
       authService.removeToken();
+      authService.removeRefreshToken();
       setToken(null);
       setUser(null);
     } catch (error) {
       // Mesmo se falhar, limpa o estado local
       authService.removeToken();
+      authService.removeRefreshToken();
       setToken(null);
       setUser(null);
       console.error('Erro ao fazer logout:', error);

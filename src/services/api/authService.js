@@ -9,12 +9,12 @@ const authService = {
    * Faz login do usuário
    * @param {string} email - Email do usuário
    * @param {string} password - Senha do usuário
-   * @returns {Promise<{access_token: string, token_type: string, expires_in: number}>}
+   * @returns {Promise<{access_token: string, refresh_token: string, token_type: string, expires_in: number}>}
    */
   async login(email, password) {
     try {
       const response = await api.post('/auth/login', {
-        email,
+        username: email, // Backend espera 'username'
         password,
       });
       return response.data;
@@ -33,9 +33,9 @@ const authService = {
   async register(email, password, name) {
     try {
       const response = await api.post('/auth/register', {
+        username: name || email.split('@')[0], // Backend espera 'username'
         email,
         password,
-        name,
       });
       return response.data;
     } catch (error) {
@@ -57,13 +57,37 @@ const authService = {
   },
 
   /**
+   * Renova o access token usando o refresh token
+   * @returns {Promise<{access_token: string, refresh_token: string, token_type: string, expires_in: number}>}
+   */
+  async refreshToken() {
+    try {
+      const refreshToken = this.getStoredRefreshToken();
+      if (!refreshToken) {
+        throw new Error('Refresh token não encontrado');
+      }
+
+      const response = await api.post('/auth/refresh', {
+        refresh_token: refreshToken,
+      });
+      return response.data;
+    } catch (error) {
+      // Se o refresh falhar, remove os tokens
+      this.removeToken();
+      this.removeRefreshToken();
+      throw this._handleError(error);
+    }
+  },
+
+  /**
    * Busca informações do usuário atual
    * @returns {Promise<{id: number, email: string, name: string, is_active: boolean, is_admin: boolean}>}
    */
   async getCurrentUser() {
     try {
       const response = await api.get('/auth/me');
-      return response.data;
+      // Backend retorna estrutura { success, data, message }
+      return response.data?.data || response.data;
     } catch (error) {
       throw this._handleError(error);
     }
@@ -90,6 +114,29 @@ const authService = {
    */
   removeToken() {
     localStorage.removeItem('auth_token');
+  },
+
+  /**
+   * Verifica se existe um refresh token armazenado
+   * @returns {string|null}
+   */
+  getStoredRefreshToken() {
+    return localStorage.getItem('refresh_token');
+  },
+
+  /**
+   * Armazena o refresh token no localStorage
+   * @param {string} token - Refresh Token JWT
+   */
+  setRefreshToken(token) {
+    localStorage.setItem('refresh_token', token);
+  },
+
+  /**
+   * Remove o refresh token do localStorage
+   */
+  removeRefreshToken() {
+    localStorage.removeItem('refresh_token');
   },
 
   /**

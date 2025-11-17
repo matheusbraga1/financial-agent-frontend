@@ -5,9 +5,10 @@ import toast from 'react-hot-toast';
 /**
  * Componente de Feedback para mensagens do assistente
  * Permite ao usuário avaliar a qualidade da resposta
+ * Integrado com backend - suporta ratings 'positive'/'negative' e comentários
  */
 const MessageFeedback = ({ messageId, onFeedbackSent }) => {
-  const [rating, setRating] = useState(null);
+  const [rating, setRating] = useState(null); // 'positive' ou 'negative'
   const [showCommentBox, setShowCommentBox] = useState(false);
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -17,9 +18,9 @@ const MessageFeedback = ({ messageId, onFeedbackSent }) => {
     if (rating !== null) return;
 
     setRating(newRating);
-    
+
     // Se for avaliação negativa, mostra campo de comentário
-    if (newRating <= 2) {
+    if (newRating === 'negative') {
       setShowCommentBox(true);
       return;
     }
@@ -56,12 +57,13 @@ const MessageFeedback = ({ messageId, onFeedbackSent }) => {
   };
 
   const handleCommentSubmit = async () => {
-    if (!comment.trim()) {
-      toast.error('Por favor, adicione um comentário');
+    // Para feedback negativo, comentário é obrigatório
+    if (rating === 'negative' && !comment.trim()) {
+      toast.error('Por favor, adicione um comentário para nos ajudar a melhorar');
       return;
     }
 
-    await submitFeedback(rating, comment.trim());
+    await submitFeedback(rating, comment.trim() || null);
   };
 
   const handleCancelComment = () => {
@@ -80,10 +82,10 @@ const MessageFeedback = ({ messageId, onFeedbackSent }) => {
           </span>
           
           <button
-            onClick={() => handleRating(5)}
+            onClick={() => handleRating('positive')}
             disabled={rating !== null || isSubmitting}
             className={`p-1.5 rounded-md transition-all ${
-              rating === 5
+              rating === 'positive'
                 ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
                 : 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-dark-hover hover:text-green-600 dark:hover:text-green-400'
             } disabled:opacity-50 disabled:cursor-not-allowed`}
@@ -94,10 +96,10 @@ const MessageFeedback = ({ messageId, onFeedbackSent }) => {
           </button>
 
           <button
-            onClick={() => handleRating(1)}
+            onClick={() => handleRating('negative')}
             disabled={rating !== null || isSubmitting}
             className={`p-1.5 rounded-md transition-all ${
-              rating === 1
+              rating === 'negative'
                 ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
                 : 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-dark-hover hover:text-red-600 dark:hover:text-red-400'
             } disabled:opacity-50 disabled:cursor-not-allowed`}
@@ -106,6 +108,18 @@ const MessageFeedback = ({ messageId, onFeedbackSent }) => {
           >
             <ThumbsDown className="w-4 h-4" />
           </button>
+
+          {/* Botão adicional para comentário opcional em avaliações positivas */}
+          {rating === 'positive' && !showCommentBox && (
+            <button
+              onClick={() => setShowCommentBox(true)}
+              className="p-1.5 rounded-md transition-all text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-dark-hover hover:text-blue-600 dark:hover:text-blue-400"
+              title="Adicionar comentário"
+              aria-label="Adicionar comentário"
+            >
+              <MessageSquare className="w-4 h-4" />
+            </button>
+          )}
 
           {rating !== null && (
             <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
@@ -125,13 +139,19 @@ const MessageFeedback = ({ messageId, onFeedbackSent }) => {
                 htmlFor={`comment-${messageId}`}
                 className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1"
               >
-                O que poderia ser melhorado?
+                {rating === 'negative'
+                  ? 'O que poderia ser melhorado? *'
+                  : 'Deixe um comentário (opcional)'}
               </label>
               <textarea
                 id={`comment-${messageId}`}
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
-                placeholder="Conte-nos o que estava errado ou como podemos melhorar..."
+                placeholder={
+                  rating === 'negative'
+                    ? 'Conte-nos o que estava errado ou como podemos melhorar...'
+                    : 'Compartilhe detalhes sobre o que você achou útil...'
+                }
                 className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-dark-border rounded-md bg-white dark:bg-dark-card text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 resize-none"
                 rows={3}
                 maxLength={500}
