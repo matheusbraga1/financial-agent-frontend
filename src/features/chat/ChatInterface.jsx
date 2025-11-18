@@ -152,7 +152,13 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated, onFi
           <div className="w-full max-w-3xl mx-auto flex flex-col items-center justify-center flex-1 space-y-8">
             {/* EmptyState Centralizado */}
             <div className="flex-shrink-0">
-              <EmptyState onSuggestionClick={sendMessage} />
+              <EmptyState
+                onSuggestionClick={sendMessage}
+                onModelChange={(modelInfo) => {
+                  setSelectedModel(modelInfo);
+                  console.log('Modelo selecionado:', modelInfo);
+                }}
+              />
             </div>
 
             {/* Input Centralizado */}

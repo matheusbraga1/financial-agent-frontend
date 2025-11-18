@@ -10,8 +10,9 @@ import { toast } from 'sonner';
  * @component
  * @example
  * <ModelSelector onModelChange={(modelInfo) => console.log(modelInfo)} />
+ * <ModelSelector variant="minimal" onModelChange={(modelInfo) => console.log(modelInfo)} />
  */
-export const ModelSelector = ({ onModelChange, className = '' }) => {
+export const ModelSelector = ({ onModelChange, className = '', variant = 'default' }) => {
   const [models, setModels] = useState(null);
   const [selectedModel, setSelectedModel] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -61,7 +62,7 @@ export const ModelSelector = ({ onModelChange, className = '' }) => {
   };
 
   if (loading) {
-    return (
+    return variant === 'minimal' ? null : (
       <div className={`flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 ${className}`}>
         <Bot className="w-4 h-4 animate-pulse" />
         <span>Carregando modelos...</span>
@@ -73,6 +74,65 @@ export const ModelSelector = ({ onModelChange, className = '' }) => {
     return null;
   }
 
+  // Variante minimal - Estilo ChatGPT (apenas nome do modelo)
+  if (variant === 'minimal') {
+    return (
+      <div className={`relative ${className}`}>
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg
+                     text-sm font-medium text-gray-700 dark:text-gray-300
+                     hover:bg-gray-100 dark:hover:bg-gray-800
+                     transition-all duration-200"
+          aria-label="Selecionar modelo"
+          aria-expanded={isOpen}
+        >
+          <span className="text-gray-900 dark:text-gray-100">{selectedModel.name}</span>
+          <ChevronDown
+            className={`w-3.5 h-3.5 text-gray-500 dark:text-gray-400 transition-transform duration-200 ${
+              isOpen ? 'rotate-180' : ''
+            }`}
+          />
+        </button>
+
+        {isOpen && (
+          <>
+            {/* Overlay */}
+            <div
+              className="fixed inset-0 z-10"
+              onClick={() => setIsOpen(false)}
+              aria-hidden="true"
+            />
+
+            {/* Dropdown minimal */}
+            <div className="absolute top-full left-0 mt-2 w-56 z-20 rounded-lg border border-gray-200 dark:border-gray-700
+                           bg-white dark:bg-gray-800 shadow-xl overflow-hidden">
+              <div className="p-1">
+                <button
+                  onClick={() => handleModelSelect(models.llm.model)}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-left
+                             hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150 ${
+                    selectedModel.name === models.llm.model
+                      ? 'bg-gray-50 dark:bg-gray-750'
+                      : ''
+                  }`}
+                >
+                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    {models.llm.model}
+                  </span>
+                  {selectedModel.name === models.llm.model && (
+                    <Check className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+                  )}
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  // Variante default - Completa com ícone
   return (
     <div className={`relative ${className}`}>
       <button

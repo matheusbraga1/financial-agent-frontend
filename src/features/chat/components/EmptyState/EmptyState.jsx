@@ -1,12 +1,13 @@
 import { Sparkles, FileText, HelpCircle, Lightbulb } from 'lucide-react';
 import { SUGGESTED_QUESTIONS } from '../../constants/chatConstants';
 import logo from '../../../../assets/img/financial-logo.png';
+import ModelSelector from '../ModelSelector';
 
 /**
  * EmptyState Premium - ChatGPT/Claude Style
  * Design moderno e profissional para estado inicial do chat
  */
-const EmptyState = ({ onSuggestionClick }) => {
+const EmptyState = ({ onSuggestionClick, onModelChange }) => {
   // Ícones para as sugestões (rotacionando entre eles)
   const suggestionIcons = [Lightbulb, HelpCircle, FileText, Sparkles];
 
@@ -32,9 +33,17 @@ const EmptyState = ({ onSuggestionClick }) => {
             Como posso ajudar você hoje?
           </span>
         </h1>
-        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 max-w-lg mx-auto px-4">
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 max-w-lg mx-auto px-4 mb-6">
           Sou o assistente virtual da Financial Imobiliária. Posso responder suas dúvidas sobre processos, documentos e procedimentos.
         </p>
+
+        {/* Model Selector - Estilo ChatGPT */}
+        <div className="flex justify-center">
+          <ModelSelector
+            variant="minimal"
+            onModelChange={onModelChange}
+          />
+        </div>
       </div>
 
       {/* Sugestões em Grid Moderno */}
