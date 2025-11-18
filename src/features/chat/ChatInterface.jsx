@@ -226,8 +226,8 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated, onFi
             </button>
           )}
 
-          {/* Input de mensagens - Fixo no Bottom com Safe Area */}
-          <div className="flex-shrink-0 bg-white dark:bg-dark-card px-3 sm:px-4 md:px-6 py-3 sm:py-4 pb-safe border-t border-gray-200 dark:border-dark-border">
+          {/* Input de mensagens - Flutuante no Bottom */}
+          <div className="flex-shrink-0 px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6 pb-safe">
             <div className="max-w-4xl mx-auto">
               <ChatInput
                 onSendMessage={sendMessage}
