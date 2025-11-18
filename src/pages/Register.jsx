@@ -162,7 +162,7 @@ const Register = () => {
             rounded-xl sm:rounded-2xl
             shadow-2xl shadow-black/10 dark:shadow-black/30
             border border-white/20 dark:border-white/10
-            p-4 sm:p-6 md:p-4
+            p-4 sm:p-6 md:p-5
             relative
             overflow-hidden
           "
@@ -173,7 +173,7 @@ const Register = () => {
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full animate-shimmer" />
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-3.5 sm:space-y-4 md:space-y-2 relative">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-3.5 sm:space-y-4 md:space-y-2.5 relative">
             {/* Username */}
             <motion.div variants={staggerItem}>
               <label
