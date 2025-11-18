@@ -87,49 +87,49 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gray-50 dark:bg-dark-bg px-4 py-8 sm:py-12">
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gray-50 dark:bg-dark-bg px-3 py-6 sm:px-4 sm:py-8 md:py-12">
       {/* Background mesh gradient animado */}
-      <div className="fixed inset-0 bg-gradient-mesh dark:bg-gradient-mesh-dark" />
+      <div className="fixed inset-0 bg-gradient-mesh dark:bg-gradient-mesh-dark opacity-60 sm:opacity-100" />
 
-      {/* Floating blobs animados */}
+      {/* Floating blobs animados - Menores e mais discretos em mobile */}
       <motion.div
-        className="fixed w-72 h-72 sm:w-96 sm:h-96 bg-primary-500/20 dark:bg-primary-500/10 rounded-full blur-3xl"
+        className="fixed w-48 h-48 sm:w-72 sm:h-72 md:w-96 md:h-96 bg-primary-500/15 dark:bg-primary-500/8 rounded-full blur-3xl pointer-events-none"
         animate={{
-          x: [0, 100, 0],
-          y: [0, -100, 0],
+          x: [0, 50, 0],
+          y: [0, -50, 0],
         }}
         transition={{
           duration: 20,
           repeat: Infinity,
           ease: 'linear',
         }}
-        style={{ top: '10%', left: '10%' }}
+        style={{ top: '5%', left: '5%' }}
       />
       <motion.div
-        className="fixed w-72 h-72 sm:w-96 sm:h-96 bg-secondary-500/20 dark:bg-secondary-500/10 rounded-full blur-3xl"
+        className="fixed w-48 h-48 sm:w-72 sm:h-72 md:w-96 md:h-96 bg-secondary-500/15 dark:bg-secondary-500/8 rounded-full blur-3xl pointer-events-none"
         animate={{
-          x: [0, -100, 0],
-          y: [0, 100, 0],
+          x: [0, -50, 0],
+          y: [0, 50, 0],
         }}
         transition={{
           duration: 25,
           repeat: Infinity,
           ease: 'linear',
         }}
-        style={{ bottom: '10%', right: '10%' }}
+        style={{ bottom: '5%', right: '5%' }}
       />
 
-      {/* Container principal */}
+      {/* Container principal - Otimizado para mobile */}
       <motion.div
-        className="max-w-md w-full space-y-6 sm:space-y-8 relative z-10"
+        className="max-w-md w-full space-y-4 sm:space-y-6 md:space-y-8 relative z-10"
         variants={staggerContainer}
         initial="initial"
         animate="animate"
       >
-        {/* Logo e título */}
+        {/* Logo e título - Mobile-first */}
         <motion.div className="text-center" variants={staggerItem}>
           <motion.div
-            className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary-100 to-primary-50 dark:from-primary-900/40 dark:to-primary-800/20 mb-3 sm:mb-4 ring-4 ring-primary-100/50 dark:ring-primary-900/30 p-2.5 sm:p-3 shadow-lg"
+            className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-xl md:rounded-2xl bg-gradient-to-br from-primary-100 to-primary-50 dark:from-primary-900/40 dark:to-primary-800/20 mb-3 sm:mb-4 ring-4 ring-primary-100/50 dark:ring-primary-900/30 p-2 sm:p-2.5 md:p-3 shadow-lg"
             variants={logoEntrance}
           >
             <img
@@ -140,45 +140,45 @@ const Register = () => {
           </motion.div>
 
           <motion.h2
-            className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary-700 to-primary-600 bg-clip-text text-transparent dark:from-primary-400 dark:to-primary-500"
+            className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-primary-700 to-primary-600 bg-clip-text text-transparent dark:from-primary-400 dark:to-primary-500 px-2"
             variants={fadeInUp}
           >
             Criar nova conta
           </motion.h2>
 
           <motion.p
-            className="mt-2 text-sm sm:text-base text-gray-600 dark:text-gray-400"
+            className="mt-1.5 sm:mt-2 text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 px-2"
             variants={fadeInUp}
           >
             Preencha os dados para se cadastrar
           </motion.p>
         </motion.div>
 
-        {/* Card com Glassmorphism */}
+        {/* Card com Glassmorphism - Mobile optimized */}
         <motion.div
           className="
             bg-white/80 dark:bg-dark-card/80
             backdrop-blur-xl backdrop-saturate-150
-            rounded-2xl
+            rounded-xl sm:rounded-2xl
             shadow-2xl shadow-black/10 dark:shadow-black/30
             border border-white/20 dark:border-white/10
-            p-6 sm:p-8
+            p-4 sm:p-6 md:p-8
             relative
             overflow-hidden
           "
           variants={staggerItem}
         >
-          {/* Shimmer effect sutil no hover */}
-          <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-700 pointer-events-none">
+          {/* Shimmer effect sutil no hover - desabilitado em mobile */}
+          <div className="hidden sm:block absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-700 pointer-events-none">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full animate-shimmer" />
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-5 relative">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-3.5 sm:space-y-4 md:space-y-5 relative">
             {/* Username */}
             <motion.div variants={staggerItem}>
               <label
                 htmlFor="username"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2"
               >
                 Nome de usuário
               </label>
@@ -193,7 +193,7 @@ const Register = () => {
                   whileFocus={{ scale: 1.01 }}
                   transition={{ duration: 0.2 }}
                   className={`
-                    w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg border text-sm sm:text-base
+                    w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg border text-base sm:text-base
                     ${
                       errors.username
                         ? 'border-red-500 focus:ring-red-500'
@@ -248,7 +248,7 @@ const Register = () => {
             <motion.div variants={staggerItem}>
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2"
               >
                 Email
               </label>
@@ -263,7 +263,7 @@ const Register = () => {
                   whileFocus={{ scale: 1.01 }}
                   transition={{ duration: 0.2 }}
                   className={`
-                    w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg border text-sm sm:text-base
+                    w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg border text-base sm:text-base
                     ${
                       errors.email
                         ? 'border-red-500 focus:ring-red-500'
@@ -310,7 +310,7 @@ const Register = () => {
             <motion.div variants={staggerItem}>
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2"
               >
                 Senha
               </label>
@@ -325,7 +325,7 @@ const Register = () => {
                   whileFocus={{ scale: 1.01 }}
                   transition={{ duration: 0.2 }}
                   className={`
-                    w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg border text-sm sm:text-base
+                    w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg border text-base sm:text-base
                     ${
                       errors.password
                         ? 'border-red-500 focus:ring-red-500'
@@ -415,7 +415,7 @@ const Register = () => {
             <motion.div variants={staggerItem}>
               <label
                 htmlFor="confirmPassword"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2"
               >
                 Confirmar senha
               </label>
@@ -430,7 +430,7 @@ const Register = () => {
                   whileFocus={{ scale: 1.01 }}
                   transition={{ duration: 0.2 }}
                   className={`
-                    w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg border text-sm sm:text-base
+                    w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg border text-base sm:text-base
                     ${
                       errors.confirmPassword
                         ? 'border-red-500 focus:ring-red-500'
@@ -508,7 +508,7 @@ const Register = () => {
               </AnimatePresence>
             </motion.div>
 
-            {/* Botão de submit com animações premium */}
+            {/* Botão de submit - Mobile optimized com altura mínima para touch */}
             <motion.button
               type="submit"
               disabled={loading}
@@ -517,7 +517,8 @@ const Register = () => {
               whileTap={!loading ? buttonTap : {}}
               className="
                 w-full flex items-center justify-center gap-2
-                px-4 py-2.5 sm:py-3 text-sm sm:text-base
+                px-4 py-3 sm:py-3.5 text-base sm:text-base
+                min-h-[48px] sm:min-h-[52px]
                 bg-gradient-to-r from-primary-600 to-primary-700
                 hover:from-primary-700 hover:to-primary-800
                 text-white font-medium rounded-lg
@@ -527,7 +528,7 @@ const Register = () => {
                 touch-manipulation
                 relative overflow-hidden
                 transition-all duration-200
-                mt-5 sm:mt-6
+                mt-4 sm:mt-5 md:mt-6
               "
             >
               {/* Shimmer effect no botão */}
@@ -570,27 +571,27 @@ const Register = () => {
             </motion.button>
           </form>
 
-          {/* Link para login */}
+          {/* Link para login - Touch-friendly */}
           <motion.div
-            className="mt-5 sm:mt-6 text-center"
+            className="mt-4 sm:mt-5 md:mt-6 text-center"
             variants={staggerItem}
           >
-            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-sm sm:text-sm text-gray-600 dark:text-gray-400">
               Já tem uma conta?{' '}
               <Link
                 to="/login"
-                className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium transition-colors relative group"
+                className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-semibold transition-colors relative group inline-block py-1"
               >
                 Fazer login
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary-600 dark:bg-primary-400 transition-all duration-300 group-hover:w-full" />
+                <span className="hidden sm:inline absolute bottom-0 left-0 w-0 h-0.5 bg-primary-600 dark:bg-primary-400 transition-all duration-300 group-hover:w-full" />
               </Link>
             </p>
           </motion.div>
         </motion.div>
 
-        {/* Footer */}
+        {/* Footer - Mobile optimized */}
         <motion.p
-          className="text-center text-[10px] sm:text-xs text-gray-500 dark:text-gray-500"
+          className="text-center text-xs sm:text-xs text-gray-500 dark:text-gray-500 px-2"
           variants={staggerItem}
         >
           Financial Imobiliária © {new Date().getFullYear()}
