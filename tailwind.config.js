@@ -76,6 +76,9 @@ export default {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0' },
         },
+      },
+      spacing: {
+        'safe': 'env(safe-area-inset-bottom, 1rem)',
       }
     },
   },

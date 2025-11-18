@@ -145,13 +145,14 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated, onFi
   const hasContent = messages.length > 0 || isLoading;
 
   return (
-    <div className="flex flex-col flex-1 bg-gradient-to-br from-primary-50 via-white to-primary-50 dark:from-dark-bg dark:via-dark-card dark:to-dark-bg overflow-hidden relative">
+    <div className="flex flex-col h-full min-h-screen bg-gradient-to-br from-primary-50 via-white to-primary-50 dark:from-dark-bg dark:via-dark-card dark:to-dark-bg relative">
       {isEmpty ? (
         /* Layout Centralizado - ChatGPT/Claude Style */
-        <div className="flex flex-col items-center justify-center flex-1 px-3 sm:px-4 md:px-6 py-8 sm:py-12 animate-fade-in">
-          <div className="w-full max-w-3xl mx-auto flex flex-col items-center justify-center flex-1 space-y-8">
-            {/* EmptyState Centralizado */}
-            <div className="flex-shrink-0">
+        <div className="flex flex-col h-full min-h-screen animate-fade-in">
+          {/* Container flex com espaçamento adequado */}
+          <div className="flex-1 flex flex-col items-center justify-center px-3 sm:px-4 md:px-6 py-4 sm:py-6 overflow-y-auto">
+            <div className="w-full max-w-3xl mx-auto space-y-6 sm:space-y-8">
+              {/* EmptyState Centralizado */}
               <EmptyState
                 onSuggestionClick={sendMessage}
                 onModelChange={(modelInfo) => {
@@ -160,28 +161,28 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated, onFi
                 }}
               />
             </div>
+          </div>
 
-            {/* Input Centralizado */}
-            <div className="w-full flex-shrink-0">
-              <ChatInput
-                onSendMessage={sendMessage}
-                onStopGeneration={stopGeneration}
-                isLoading={isLoading}
-                isStreaming={isStreaming}
-              />
-            </div>
+          {/* Input Fixo no Bottom com Safe Area */}
+          <div className="flex-shrink-0 bg-gradient-to-t from-primary-50 dark:from-dark-bg to-transparent px-3 sm:px-4 md:px-6 py-3 sm:py-4 pb-safe">
+            <ChatInput
+              onSendMessage={sendMessage}
+              onStopGeneration={stopGeneration}
+              isLoading={isLoading}
+              isStreaming={isStreaming}
+            />
           </div>
         </div>
       ) : (
         /* Layout Normal - Com Mensagens */
-        <>
+        <div className="flex flex-col h-full min-h-screen">
           {/* Container de mensagens - Responsivo com scroll inteligente */}
           <div
             ref={containerRef}
             onScroll={handleScroll}
             className="flex-1 overflow-y-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 scroll-smooth animate-fade-in"
           >
-            <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
+            <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8 pb-4">
               {messages.map((message, index) => {
                 // Detectar se é a última mensagem do assistente e está streamando
                 const isLastAssistantMessage =
@@ -232,9 +233,9 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated, onFi
             </button>
           )}
 
-          {/* Input de mensagens - Fixo no Bottom */}
-          <div className="flex-shrink-0 bg-gradient-to-t from-primary-50 dark:from-dark-bg to-transparent px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6">
-            <div className="max-w-4xl mx-auto space-y-3">
+          {/* Input de mensagens - Fixo no Bottom com Safe Area */}
+          <div className="flex-shrink-0 bg-gradient-to-t from-primary-50 dark:from-dark-bg to-transparent px-3 sm:px-4 md:px-6 py-3 sm:py-4 pb-safe border-t border-gray-100 dark:border-dark-border">
+            <div className="max-w-4xl mx-auto space-y-2 sm:space-y-3">
               {/* Barra de configurações - ModelSelector */}
               <div className="flex items-center justify-between px-2">
                 <ModelSelector
@@ -255,7 +256,7 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated, onFi
               />
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
