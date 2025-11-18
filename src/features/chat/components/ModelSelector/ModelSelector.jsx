@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Bot, ChevronDown, Check } from 'lucide-react';
 import { chatService } from '../../services/chatService';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 
 /**
  * Componente de seleção de modelo LLM
