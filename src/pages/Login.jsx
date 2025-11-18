@@ -179,7 +179,7 @@ const Login = () => {
                     ${
                       errors.username
                         ? 'border-red-500 focus:ring-red-500'
-                        : 'border-gray-300 dark:border-dark-border hover:border-primary-400 dark:hover:border-primary-600 focus:ring-primary-500 dark:focus:ring-primary-600'
+                        : 'border-gray-300 dark:border-dark-border focus:ring-primary-500 dark:focus:ring-primary-600'
                     }
                     bg-white/50 dark:bg-dark-bg/50
                     hover:bg-white/70 dark:hover:bg-dark-bg/70
@@ -242,7 +242,7 @@ const Login = () => {
                     ${
                       errors.password
                         ? 'border-red-500 focus:ring-red-500'
-                        : 'border-gray-300 dark:border-dark-border hover:border-primary-400 dark:hover:border-primary-600 focus:ring-primary-500 dark:focus:ring-primary-600'
+                        : 'border-gray-300 dark:border-dark-border focus:ring-primary-500 dark:focus:ring-primary-600'
                     }
                     bg-white/50 dark:bg-dark-bg/50
                     hover:bg-white/70 dark:hover:bg-dark-bg/70
