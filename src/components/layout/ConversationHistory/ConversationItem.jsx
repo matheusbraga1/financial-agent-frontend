@@ -24,9 +24,17 @@ const ConversationItem = memo(({
   onMouseEnter,
   onMouseLeave,
 }) => {
+  // Garante valores padrão seguros para campos do session
+  const safeSession = {
+    session_id: session.session_id || '',
+    last_message: session.last_message || 'Nova conversa',
+    created_at: session.created_at || new Date().toISOString(),
+    message_count: session.message_count || 0,
+  };
+
   // Efeito de digitação apenas se enableTyping = true
   const { displayedText, isTyping } = useTypingEffectWithTruncate(
-    session.last_message,
+    safeSession.last_message,
     60,
     30,
     enableTyping
@@ -40,7 +48,7 @@ const ConversationItem = memo(({
         locale: ptBR,
       });
     } catch {
-      return '';
+      return 'agora';
     }
   };
 
@@ -96,14 +104,14 @@ const ConversationItem = memo(({
           <div className="flex items-center gap-2 text-xs">
             <div className={`flex items-center gap-1 ${isActive ? 'text-primary-700 dark:text-primary-300' : 'text-gray-500 dark:text-gray-400'}`}>
               <Clock className="w-3 h-3" />
-              <span>{formatTimestamp(session.created_at)}</span>
+              <span>{formatTimestamp(safeSession.created_at)}</span>
             </div>
-            {session.message_count > 0 && (
+            {safeSession.message_count > 0 && (
               <>
                 <span className="text-gray-300 dark:text-gray-600">•</span>
                 <span className={`flex items-center gap-1 ${isActive ? 'text-primary-700 dark:text-primary-300' : 'text-gray-500 dark:text-gray-400'}`}>
                   <MessageSquare className="w-3 h-3" />
-                  <span>{session.message_count}</span>
+                  <span>{safeSession.message_count}</span>
                 </span>
               </>
             )}

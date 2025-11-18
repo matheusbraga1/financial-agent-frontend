@@ -88,13 +88,15 @@ export const useTypingEffectWithTruncate = (
   speed = 30,
   enabled = true
 ) => {
-  const truncatedText = truncateText(text, maxLength);
+  // Garante que text seja sempre uma string
+  const safeText = text || 'Nova conversa';
+  const truncatedText = truncateText(safeText, maxLength);
   const typingResult = useTypingEffect(truncatedText, speed, enabled);
 
   return {
     ...typingResult,
-    fullText: text,
-    isTruncated: text.length > maxLength,
+    fullText: safeText,
+    isTruncated: safeText.length > maxLength,
   };
 };
 
@@ -107,7 +109,10 @@ export const useTypingEffectWithTruncate = (
  * @returns {string} Texto truncado com '...' se necessário
  */
 const truncateText = (text, maxLength = 60) => {
-  if (!text || text.trim() === '') return 'Nova conversa';
+  // Garante que text seja uma string válida
+  if (!text || typeof text !== 'string' || text.trim() === '') {
+    return 'Nova conversa';
+  }
 
   const cleanText = text.trim().replace(/\s+/g, ' ');
 
