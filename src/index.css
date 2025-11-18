@@ -301,3 +301,81 @@ aside {
     display: none;
   }
 }
+
+/* ============================================
+   TOAST NOTIFICATIONS CUSTOMIZADOS
+   ============================================ */
+
+/* Toast de sucesso */
+[data-sonner-toast][data-type="success"] {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%),
+              rgba(255, 255, 255, 0.95) !important;
+  border-left: 4px solid #10b981 !important;
+}
+
+.dark [data-sonner-toast][data-type="success"] {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.1) 100%),
+              rgba(15, 29, 23, 0.95) !important;
+}
+
+/* Toast de erro */
+[data-sonner-toast][data-type="error"] {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.05) 100%),
+              rgba(255, 255, 255, 0.95) !important;
+  border-left: 4px solid #ef4444 !important;
+}
+
+.dark [data-sonner-toast][data-type="error"] {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.1) 100%),
+              rgba(29, 15, 15, 0.95) !important;
+}
+
+/* Toast de warning */
+[data-sonner-toast][data-type="warning"] {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(217, 119, 6, 0.05) 100%),
+              rgba(255, 255, 255, 0.95) !important;
+  border-left: 4px solid #f59e0b !important;
+}
+
+.dark [data-sonner-toast][data-type="warning"] {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.1) 100%),
+              rgba(29, 25, 15, 0.95) !important;
+}
+
+/* Toast de info */
+[data-sonner-toast][data-type="info"] {
+  background: linear-gradient(135deg, rgba(0, 136, 79, 0.1) 0%, rgba(0, 102, 59, 0.05) 100%),
+              rgba(255, 255, 255, 0.95) !important;
+  border-left: 4px solid #00884f !important;
+}
+
+.dark [data-sonner-toast][data-type="info"] {
+  background: linear-gradient(135deg, rgba(0, 136, 79, 0.15) 0%, rgba(0, 102, 59, 0.1) 100%),
+              rgba(10, 20, 16, 0.95) !important;
+}
+
+/* Animação de entrada do toast */
+[data-sonner-toast] {
+  animation: toast-slide-in 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes toast-slide-in {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Botão de fechar do toast */
+[data-sonner-toast] button[data-close-button] {
+  transition: all 0.2s ease;
+}
+
+[data-sonner-toast] button[data-close-button]:hover {
+  transform: scale(1.1);
+  opacity: 1 !important;
+}

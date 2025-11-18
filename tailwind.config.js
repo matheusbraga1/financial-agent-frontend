@@ -62,6 +62,10 @@ export default {
         'slide-down': 'slideDown 0.3s ease-out',
         'fade-in': 'fadeIn 0.3s ease-out',
         'blink': 'blink 1s step-end infinite',
+        'shimmer': 'shimmer 2s linear infinite',
+        'float': 'float 6s ease-in-out infinite',
+        'glow': 'glow 2s ease-in-out infinite',
+        'ripple': 'ripple 0.6s ease-out',
       },
       keyframes: {
         slideDown: {
@@ -76,6 +80,42 @@ export default {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0' },
         },
+        shimmer: {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(100%)' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-20px)' },
+        },
+        glow: {
+          '0%, 100%': { boxShadow: '0 0 20px rgba(0, 136, 79, 0.2)' },
+          '50%': { boxShadow: '0 0 40px rgba(0, 136, 79, 0.4)' },
+        },
+        ripple: {
+          '0%': {
+            transform: 'scale(0)',
+            opacity: '1',
+          },
+          '100%': {
+            transform: 'scale(4)',
+            opacity: '0',
+          },
+        },
+      },
+      backgroundImage: {
+        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+        'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
+        'gradient-mesh':
+          'radial-gradient(at 27% 37%, hsla(162, 100%, 47%, 0.15) 0px, transparent 50%),' +
+          'radial-gradient(at 97% 21%, hsla(191, 85%, 48%, 0.12) 0px, transparent 50%),' +
+          'radial-gradient(at 52% 99%, hsla(43, 74%, 52%, 0.12) 0px, transparent 50%),' +
+          'radial-gradient(at 10% 29%, hsla(162, 100%, 32%, 0.15) 0px, transparent 50%)',
+        'gradient-mesh-dark':
+          'radial-gradient(at 27% 37%, hsla(162, 100%, 25%, 0.2) 0px, transparent 50%),' +
+          'radial-gradient(at 97% 21%, hsla(191, 85%, 20%, 0.15) 0px, transparent 50%),' +
+          'radial-gradient(at 52% 99%, hsla(43, 74%, 25%, 0.15) 0px, transparent 50%),' +
+          'radial-gradient(at 10% 29%, hsla(162, 100%, 15%, 0.2) 0px, transparent 50%)',
       },
       spacing: {
         'safe': 'env(safe-area-inset-bottom, 1rem)',

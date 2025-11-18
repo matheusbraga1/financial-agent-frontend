@@ -4,9 +4,19 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Eye, EyeOff, UserPlus, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { VALIDATION_ERRORS } from '../constants/errorMessages';
 import logo from '../assets/img/financial-logo.png';
+import {
+  fadeInUp,
+  logoEntrance,
+  buttonHoverWithShadow,
+  buttonTap,
+  inputUnderline,
+  staggerContainer,
+  staggerItem,
+} from '../utils/animations';
 
 // Schema de validação com Zod e mensagens profissionais
 const registerSchema = z
@@ -40,6 +50,7 @@ const registerSchema = z
 const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [focusedField, setFocusedField] = useState(null);
   const { register: registerUser, loading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -76,83 +87,227 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-primary-50 dark:from-dark-bg dark:via-dark-card dark:to-dark-bg px-4 py-8 sm:py-12">
-      <div className="max-w-md w-full space-y-6 sm:space-y-8">
-        {/* Logo e título - Responsivo */}
-        <div className="text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary-100 to-primary-50 dark:from-primary-900/40 dark:to-primary-800/20 mb-3 sm:mb-4 ring-4 ring-primary-100 dark:ring-primary-900/30 p-2.5 sm:p-3">
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gray-50 dark:bg-dark-bg px-4 py-8 sm:py-12">
+      {/* Background mesh gradient animado */}
+      <div className="fixed inset-0 bg-gradient-mesh dark:bg-gradient-mesh-dark" />
+
+      {/* Floating blobs animados */}
+      <motion.div
+        className="fixed w-72 h-72 sm:w-96 sm:h-96 bg-primary-500/20 dark:bg-primary-500/10 rounded-full blur-3xl"
+        animate={{
+          x: [0, 100, 0],
+          y: [0, -100, 0],
+        }}
+        transition={{
+          duration: 20,
+          repeat: Infinity,
+          ease: 'linear',
+        }}
+        style={{ top: '10%', left: '10%' }}
+      />
+      <motion.div
+        className="fixed w-72 h-72 sm:w-96 sm:h-96 bg-secondary-500/20 dark:bg-secondary-500/10 rounded-full blur-3xl"
+        animate={{
+          x: [0, -100, 0],
+          y: [0, 100, 0],
+        }}
+        transition={{
+          duration: 25,
+          repeat: Infinity,
+          ease: 'linear',
+        }}
+        style={{ bottom: '10%', right: '10%' }}
+      />
+
+      {/* Container principal */}
+      <motion.div
+        className="max-w-md w-full space-y-6 sm:space-y-8 relative z-10"
+        variants={staggerContainer}
+        initial="initial"
+        animate="animate"
+      >
+        {/* Logo e título */}
+        <motion.div className="text-center" variants={staggerItem}>
+          <motion.div
+            className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary-100 to-primary-50 dark:from-primary-900/40 dark:to-primary-800/20 mb-3 sm:mb-4 ring-4 ring-primary-100/50 dark:ring-primary-900/30 p-2.5 sm:p-3 shadow-lg"
+            variants={logoEntrance}
+          >
             <img
               src={logo}
               alt="Financial"
               className="w-full h-full object-contain"
             />
-          </div>
-          <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary-700 to-primary-600 bg-clip-text text-transparent dark:from-primary-400 dark:to-primary-500">
-            Criar nova conta
-          </h2>
-          <p className="mt-2 text-sm sm:text-base text-gray-600 dark:text-gray-400">
-            Preencha os dados para se cadastrar
-          </p>
-        </div>
+          </motion.div>
 
-        {/* Formulário - Responsivo */}
-        <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl border border-gray-100 dark:border-dark-border p-6 sm:p-8">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-5">
+          <motion.h2
+            className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary-700 to-primary-600 bg-clip-text text-transparent dark:from-primary-400 dark:to-primary-500"
+            variants={fadeInUp}
+          >
+            Criar nova conta
+          </motion.h2>
+
+          <motion.p
+            className="mt-2 text-sm sm:text-base text-gray-600 dark:text-gray-400"
+            variants={fadeInUp}
+          >
+            Preencha os dados para se cadastrar
+          </motion.p>
+        </motion.div>
+
+        {/* Card com Glassmorphism */}
+        <motion.div
+          className="
+            bg-white/80 dark:bg-dark-card/80
+            backdrop-blur-xl backdrop-saturate-150
+            rounded-2xl
+            shadow-2xl shadow-black/10 dark:shadow-black/30
+            border border-white/20 dark:border-white/10
+            p-6 sm:p-8
+            relative
+            overflow-hidden
+          "
+          variants={staggerItem}
+        >
+          {/* Shimmer effect sutil no hover */}
+          <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-700 pointer-events-none">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full animate-shimmer" />
+          </div>
+
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-5 relative">
             {/* Username */}
-            <div>
+            <motion.div variants={staggerItem}>
               <label
                 htmlFor="username"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >
                 Nome de usuário
               </label>
-              <input
-                id="username"
-                type="text"
-                autoComplete="username"
-                {...register('username')}
-                className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg border text-sm sm:text-base ${
-                  errors.username
-                    ? 'border-red-500 focus:ring-red-500'
-                    : 'border-gray-300 dark:border-dark-border focus:ring-primary-500 dark:focus:ring-primary-600'
-                } bg-white dark:bg-dark-bg text-gray-900 dark:text-white focus:outline-none focus:ring-2 transition-colors`}
-                placeholder="seu_usuario"
-              />
-              {errors.username && (
-                <p className="mt-1 text-sm text-red-500">{errors.username.message}</p>
-              )}
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Apenas letras, números e underscore
-              </p>
-            </div>
+              <div className="relative">
+                <motion.input
+                  id="username"
+                  type="text"
+                  autoComplete="username"
+                  {...register('username')}
+                  onFocus={() => setFocusedField('username')}
+                  onBlur={() => setFocusedField(null)}
+                  whileFocus={{ scale: 1.01 }}
+                  transition={{ duration: 0.2 }}
+                  className={`
+                    w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg border text-sm sm:text-base
+                    ${
+                      errors.username
+                        ? 'border-red-500 focus:ring-red-500'
+                        : 'border-gray-300 dark:border-dark-border focus:ring-primary-500 dark:focus:ring-primary-600'
+                    }
+                    bg-white/50 dark:bg-dark-bg/50
+                    text-gray-900 dark:text-white
+                    focus:outline-none focus:ring-2
+                    transition-all duration-200
+                    backdrop-blur-sm
+                  `}
+                  placeholder="seu_usuario"
+                />
+
+                {/* Animated underline */}
+                <AnimatePresence>
+                  {focusedField === 'username' && !errors.username && (
+                    <motion.div
+                      className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-primary-500 to-primary-700"
+                      variants={inputUnderline}
+                      initial="initial"
+                      animate="animate"
+                      exit="exit"
+                    />
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <AnimatePresence mode="wait">
+                {errors.username ? (
+                  <motion.p
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="mt-1 text-sm text-red-500"
+                  >
+                    {errors.username.message}
+                  </motion.p>
+                ) : (
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="mt-1 text-xs text-gray-500 dark:text-gray-400"
+                  >
+                    Apenas letras, números e underscore
+                  </motion.p>
+                )}
+              </AnimatePresence>
+            </motion.div>
 
             {/* Email */}
-            <div>
+            <motion.div variants={staggerItem}>
               <label
                 htmlFor="email"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >
                 Email
               </label>
-              <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                {...register('email')}
-                className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg border text-sm sm:text-base ${
-                  errors.email
-                    ? 'border-red-500 focus:ring-red-500'
-                    : 'border-gray-300 dark:border-dark-border focus:ring-primary-500 dark:focus:ring-primary-600'
-                } bg-white dark:bg-dark-bg text-gray-900 dark:text-white focus:outline-none focus:ring-2 transition-colors`}
-                placeholder="seu@email.com"
-              />
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-500">{errors.email.message}</p>
-              )}
-            </div>
+              <div className="relative">
+                <motion.input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  {...register('email')}
+                  onFocus={() => setFocusedField('email')}
+                  onBlur={() => setFocusedField(null)}
+                  whileFocus={{ scale: 1.01 }}
+                  transition={{ duration: 0.2 }}
+                  className={`
+                    w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg border text-sm sm:text-base
+                    ${
+                      errors.email
+                        ? 'border-red-500 focus:ring-red-500'
+                        : 'border-gray-300 dark:border-dark-border focus:ring-primary-500 dark:focus:ring-primary-600'
+                    }
+                    bg-white/50 dark:bg-dark-bg/50
+                    text-gray-900 dark:text-white
+                    focus:outline-none focus:ring-2
+                    transition-all duration-200
+                    backdrop-blur-sm
+                  `}
+                  placeholder="seu@email.com"
+                />
+
+                {/* Animated underline */}
+                <AnimatePresence>
+                  {focusedField === 'email' && !errors.email && (
+                    <motion.div
+                      className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-primary-500 to-primary-700"
+                      variants={inputUnderline}
+                      initial="initial"
+                      animate="animate"
+                      exit="exit"
+                    />
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <AnimatePresence mode="wait">
+                {errors.email && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="mt-1 text-sm text-red-500"
+                  >
+                    {errors.email.message}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+            </motion.div>
 
             {/* Senha */}
-            <div>
+            <motion.div variants={staggerItem}>
               <label
                 htmlFor="password"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
@@ -160,40 +315,104 @@ const Register = () => {
                 Senha
               </label>
               <div className="relative">
-                <input
+                <motion.input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"
                   {...register('password')}
-                  className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg border text-sm sm:text-base ${
-                    errors.password
-                      ? 'border-red-500 focus:ring-red-500'
-                      : 'border-gray-300 dark:border-dark-border focus:ring-primary-500 dark:focus:ring-primary-600'
-                  } bg-white dark:bg-dark-bg text-gray-900 dark:text-white focus:outline-none focus:ring-2 transition-colors pr-11 sm:pr-12`}
+                  onFocus={() => setFocusedField('password')}
+                  onBlur={() => setFocusedField(null)}
+                  whileFocus={{ scale: 1.01 }}
+                  transition={{ duration: 0.2 }}
+                  className={`
+                    w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg border text-sm sm:text-base
+                    ${
+                      errors.password
+                        ? 'border-red-500 focus:ring-red-500'
+                        : 'border-gray-300 dark:border-dark-border focus:ring-primary-500 dark:focus:ring-primary-600'
+                    }
+                    bg-white/50 dark:bg-dark-bg/50
+                    text-gray-900 dark:text-white
+                    focus:outline-none focus:ring-2
+                    transition-all duration-200
+                    pr-11 sm:pr-12
+                    backdrop-blur-sm
+                  `}
                   placeholder="••••••••"
                 />
-                <button
+
+                {/* Botão mostrar/ocultar senha */}
+                <motion.button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors touch-manipulation"
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors touch-manipulation p-1 rounded-md hover:bg-gray-100 dark:hover:bg-dark-hover"
+                  aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
                 >
-                  {showPassword ? (
-                    <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" />
-                  ) : (
-                    <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <AnimatePresence mode="wait">
+                    {showPassword ? (
+                      <motion.div
+                        key="hide"
+                        initial={{ scale: 0, rotate: -180 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        exit={{ scale: 0, rotate: 180 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" />
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="show"
+                        initial={{ scale: 0, rotate: -180 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        exit={{ scale: 0, rotate: 180 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.button>
+
+                {/* Animated underline */}
+                <AnimatePresence>
+                  {focusedField === 'password' && !errors.password && (
+                    <motion.div
+                      className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-primary-500 to-primary-700"
+                      variants={inputUnderline}
+                      initial="initial"
+                      animate="animate"
+                      exit="exit"
+                    />
                   )}
-                </button>
+                </AnimatePresence>
               </div>
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-500">{errors.password.message}</p>
-              )}
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Mínimo 8 caracteres
-              </p>
-            </div>
+
+              <AnimatePresence mode="wait">
+                {errors.password ? (
+                  <motion.p
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="mt-1 text-sm text-red-500"
+                  >
+                    {errors.password.message}
+                  </motion.p>
+                ) : (
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="mt-1 text-xs text-gray-500 dark:text-gray-400"
+                  >
+                    Mínimo 8 caracteres
+                  </motion.p>
+                )}
+              </AnimatePresence>
+            </motion.div>
 
             {/* Confirmar senha */}
-            <div>
+            <motion.div variants={staggerItem}>
               <label
                 htmlFor="confirmPassword"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
@@ -201,76 +420,182 @@ const Register = () => {
                 Confirmar senha
               </label>
               <div className="relative">
-                <input
+                <motion.input
                   id="confirmPassword"
                   type={showConfirmPassword ? 'text' : 'password'}
                   autoComplete="new-password"
                   {...register('confirmPassword')}
-                  className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg border text-sm sm:text-base ${
-                    errors.confirmPassword
-                      ? 'border-red-500 focus:ring-red-500'
-                      : 'border-gray-300 dark:border-dark-border focus:ring-primary-500 dark:focus:ring-primary-600'
-                  } bg-white dark:bg-dark-bg text-gray-900 dark:text-white focus:outline-none focus:ring-2 transition-colors pr-11 sm:pr-12`}
+                  onFocus={() => setFocusedField('confirmPassword')}
+                  onBlur={() => setFocusedField(null)}
+                  whileFocus={{ scale: 1.01 }}
+                  transition={{ duration: 0.2 }}
+                  className={`
+                    w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg border text-sm sm:text-base
+                    ${
+                      errors.confirmPassword
+                        ? 'border-red-500 focus:ring-red-500'
+                        : 'border-gray-300 dark:border-dark-border focus:ring-primary-500 dark:focus:ring-primary-600'
+                    }
+                    bg-white/50 dark:bg-dark-bg/50
+                    text-gray-900 dark:text-white
+                    focus:outline-none focus:ring-2
+                    transition-all duration-200
+                    pr-11 sm:pr-12
+                    backdrop-blur-sm
+                  `}
                   placeholder="••••••••"
                 />
-                <button
+
+                {/* Botão mostrar/ocultar senha */}
+                <motion.button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors touch-manipulation"
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors touch-manipulation p-1 rounded-md hover:bg-gray-100 dark:hover:bg-dark-hover"
+                  aria-label={showConfirmPassword ? 'Ocultar senha' : 'Mostrar senha'}
                 >
-                  {showConfirmPassword ? (
-                    <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" />
-                  ) : (
-                    <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
-                  )}
-                </button>
-              </div>
-              {errors.confirmPassword && (
-                <p className="mt-1 text-sm text-red-500">
-                  {errors.confirmPassword.message}
-                </p>
-              )}
-            </div>
+                  <AnimatePresence mode="wait">
+                    {showConfirmPassword ? (
+                      <motion.div
+                        key="hide"
+                        initial={{ scale: 0, rotate: -180 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        exit={{ scale: 0, rotate: 180 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" />
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="show"
+                        initial={{ scale: 0, rotate: -180 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        exit={{ scale: 0, rotate: 180 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.button>
 
-            {/* Botão de submit */}
-            <button
+                {/* Animated underline */}
+                <AnimatePresence>
+                  {focusedField === 'confirmPassword' && !errors.confirmPassword && (
+                    <motion.div
+                      className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-primary-500 to-primary-700"
+                      variants={inputUnderline}
+                      initial="initial"
+                      animate="animate"
+                      exit="exit"
+                    />
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <AnimatePresence mode="wait">
+                {errors.confirmPassword && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="mt-1 text-sm text-red-500"
+                  >
+                    {errors.confirmPassword.message}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+            </motion.div>
+
+            {/* Botão de submit com animações premium */}
+            <motion.button
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 sm:py-3 text-sm sm:text-base bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-medium rounded-lg transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-primary-600 disabled:hover:to-primary-700 mt-5 sm:mt-6 touch-manipulation"
+              variants={staggerItem}
+              whileHover={!loading ? buttonHoverWithShadow : {}}
+              whileTap={!loading ? buttonTap : {}}
+              className="
+                w-full flex items-center justify-center gap-2
+                px-4 py-2.5 sm:py-3 text-sm sm:text-base
+                bg-gradient-to-r from-primary-600 to-primary-700
+                hover:from-primary-700 hover:to-primary-800
+                text-white font-medium rounded-lg
+                shadow-lg shadow-primary-500/30
+                disabled:opacity-50 disabled:cursor-not-allowed
+                disabled:shadow-none
+                touch-manipulation
+                relative overflow-hidden
+                transition-all duration-200
+                mt-5 sm:mt-6
+              "
             >
-              {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
-                  Criando conta...
-                </>
-              ) : (
-                <>
-                  <UserPlus className="w-4 h-4 sm:w-5 sm:h-5" />
-                  Criar conta
-                </>
+              {/* Shimmer effect no botão */}
+              {!loading && (
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                  initial={{ x: '-100%' }}
+                  whileHover={{
+                    x: '100%',
+                    transition: { duration: 0.6, ease: 'linear' }
+                  }}
+                />
               )}
-            </button>
+
+              <AnimatePresence mode="wait">
+                {loading ? (
+                  <motion.div
+                    key="loading"
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    className="flex items-center gap-2"
+                  >
+                    <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
+                    Criando conta...
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="idle"
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    className="flex items-center gap-2"
+                  >
+                    <UserPlus className="w-4 h-4 sm:w-5 sm:h-5" />
+                    Criar conta
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.button>
           </form>
 
           {/* Link para login */}
-          <div className="mt-5 sm:mt-6 text-center">
+          <motion.div
+            className="mt-5 sm:mt-6 text-center"
+            variants={staggerItem}
+          >
             <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
               Já tem uma conta?{' '}
               <Link
                 to="/login"
-                className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium transition-colors"
+                className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium transition-colors relative group"
               >
                 Fazer login
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary-600 dark:bg-primary-400 transition-all duration-300 group-hover:w-full" />
               </Link>
             </p>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         {/* Footer */}
-        <p className="text-center text-[10px] sm:text-xs text-gray-500 dark:text-gray-500">
+        <motion.p
+          className="text-center text-[10px] sm:text-xs text-gray-500 dark:text-gray-500"
+          variants={staggerItem}
+        >
           Financial Imobiliária © {new Date().getFullYear()}
-        </p>
-      </div>
+        </motion.p>
+      </motion.div>
     </div>
   );
 };
