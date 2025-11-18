@@ -193,13 +193,14 @@ const Register = () => {
                   whileFocus={{ scale: 1.01 }}
                   transition={{ duration: 0.2 }}
                   className={`
-                    w-full px-3 sm:px-4 py-2.5 sm:py-3 md:py-2 rounded-lg border text-base sm:text-base
+                    w-full px-3 sm:px-4 py-2.5 sm:py-3 md:py-2.5 rounded-lg border text-base sm:text-base
                     ${
                       errors.username
                         ? 'border-red-500 focus:ring-red-500'
-                        : 'border-gray-300 dark:border-dark-border focus:ring-primary-500 dark:focus:ring-primary-600'
+                        : 'border-gray-300 dark:border-dark-border hover:border-primary-400 dark:hover:border-primary-600 focus:ring-primary-500 dark:focus:ring-primary-600'
                     }
                     bg-white/50 dark:bg-dark-bg/50
+                    hover:bg-white/70 dark:hover:bg-dark-bg/70
                     text-gray-900 dark:text-white
                     focus:outline-none focus:ring-2
                     transition-all duration-200
@@ -263,13 +264,14 @@ const Register = () => {
                   whileFocus={{ scale: 1.01 }}
                   transition={{ duration: 0.2 }}
                   className={`
-                    w-full px-3 sm:px-4 py-2.5 sm:py-3 md:py-2 rounded-lg border text-base sm:text-base
+                    w-full px-3 sm:px-4 py-2.5 sm:py-3 md:py-2.5 rounded-lg border text-base sm:text-base
                     ${
                       errors.email
                         ? 'border-red-500 focus:ring-red-500'
-                        : 'border-gray-300 dark:border-dark-border focus:ring-primary-500 dark:focus:ring-primary-600'
+                        : 'border-gray-300 dark:border-dark-border hover:border-primary-400 dark:hover:border-primary-600 focus:ring-primary-500 dark:focus:ring-primary-600'
                     }
                     bg-white/50 dark:bg-dark-bg/50
+                    hover:bg-white/70 dark:hover:bg-dark-bg/70
                     text-gray-900 dark:text-white
                     focus:outline-none focus:ring-2
                     transition-all duration-200
@@ -325,13 +327,14 @@ const Register = () => {
                   whileFocus={{ scale: 1.01 }}
                   transition={{ duration: 0.2 }}
                   className={`
-                    w-full px-3 sm:px-4 py-2.5 sm:py-3 md:py-2 rounded-lg border text-base sm:text-base
+                    w-full px-3 sm:px-4 py-2.5 sm:py-3 md:py-2.5 rounded-lg border text-base sm:text-base
                     ${
                       errors.password
                         ? 'border-red-500 focus:ring-red-500'
-                        : 'border-gray-300 dark:border-dark-border focus:ring-primary-500 dark:focus:ring-primary-600'
+                        : 'border-gray-300 dark:border-dark-border hover:border-primary-400 dark:hover:border-primary-600 focus:ring-primary-500 dark:focus:ring-primary-600'
                     }
                     bg-white/50 dark:bg-dark-bg/50
+                    hover:bg-white/70 dark:hover:bg-dark-bg/70
                     text-gray-900 dark:text-white
                     focus:outline-none focus:ring-2
                     transition-all duration-200
@@ -428,13 +431,14 @@ const Register = () => {
                   whileFocus={{ scale: 1.01 }}
                   transition={{ duration: 0.2 }}
                   className={`
-                    w-full px-3 sm:px-4 py-2.5 sm:py-3 md:py-2 rounded-lg border text-base sm:text-base
+                    w-full px-3 sm:px-4 py-2.5 sm:py-3 md:py-2.5 rounded-lg border text-base sm:text-base
                     ${
                       errors.confirmPassword
                         ? 'border-red-500 focus:ring-red-500'
-                        : 'border-gray-300 dark:border-dark-border focus:ring-primary-500 dark:focus:ring-primary-600'
+                        : 'border-gray-300 dark:border-dark-border hover:border-primary-400 dark:hover:border-primary-600 focus:ring-primary-500 dark:focus:ring-primary-600'
                     }
                     bg-white/50 dark:bg-dark-bg/50
+                    hover:bg-white/70 dark:hover:bg-dark-bg/70
                     text-gray-900 dark:text-white
                     focus:outline-none focus:ring-2
                     transition-all duration-200
@@ -513,8 +517,8 @@ const Register = () => {
               whileTap={!loading ? buttonTap : {}}
               className="
                 w-full flex items-center justify-center gap-2
-                px-4 py-3 sm:py-3.5 text-base sm:text-base
-                min-h-[48px] sm:min-h-[52px]
+                px-4 py-3 sm:py-3.5 md:py-2.5 text-base sm:text-base
+                min-h-[48px] sm:min-h-[52px] md:min-h-0
                 bg-gradient-to-r from-primary-600 to-primary-700
                 hover:from-primary-700 hover:to-primary-800
                 text-white font-medium rounded-lg
