@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Sparkles,
   Loader2,
+  FileText,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -158,6 +159,18 @@ const SidebarUserMenu = memo(
                   <LayoutDashboard className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                   <span>Dashboard</span>
                 </motion.button>
+
+                {/* Documentos (apenas para admins) */}
+                {user?.is_admin && (
+                  <motion.button
+                    whileHover={{ x: 4 }}
+                    onClick={() => handleNavigate('/documents')}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-hover transition-colors"
+                  >
+                    <FileText className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                    <span>Documentos</span>
+                  </motion.button>
+                )}
 
                 {/* Sobre */}
                 <motion.button
