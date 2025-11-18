@@ -14,11 +14,12 @@ import {
 import ModelSelector from './components/ModelSelector';
 
 /**
- * Interface principal do chat
- * - Suporta histórico de conversas
- * - Integrado com sistema de sessões do backend
- * - Feedback de mensagens
+ * Interface principal do chat - Estilo Claude
+ * - Layout centralizado quando vazio (como Claude)
+ * - Transição suave para layout de mensagens
+ * - Input centralizado no estado vazio
  * - Scroll inteligente
+ * - Design profissional e responsivo
  */
 const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated, onFirstMessage }) => {
   const {
@@ -147,19 +148,13 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated, onFi
   return (
     <div className="flex flex-col h-full min-h-screen bg-gradient-to-br from-primary-50 via-white to-primary-50 dark:from-dark-bg dark:via-dark-card dark:to-dark-bg relative">
       {isEmpty ? (
-        /* Layout Centralizado - ChatGPT/Claude Style */
+        /* Layout Centralizado - Claude Style */
         <div className="flex flex-col h-full min-h-screen animate-fade-in">
           {/* Container flex com espaçamento adequado */}
           <div className="flex-1 flex flex-col items-center justify-center px-3 sm:px-4 md:px-6 py-4 sm:py-6 overflow-y-auto">
             <div className="w-full max-w-3xl mx-auto space-y-6 sm:space-y-8">
-              {/* EmptyState Centralizado */}
-              <EmptyState
-                onSuggestionClick={sendMessage}
-                onModelChange={(modelInfo) => {
-                  setSelectedModel(modelInfo);
-                  console.log('Modelo selecionado:', modelInfo);
-                }}
-              />
+              {/* EmptyState Centralizado - Estilo Claude Minimalista */}
+              <EmptyState onSuggestionClick={sendMessage} />
             </div>
           </div>
 
