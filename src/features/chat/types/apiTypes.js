@@ -12,6 +12,7 @@
  * @property {Array<SourceDocument>} [sources] - Fontes da resposta
  * @property {string} [model_used] - Modelo LLM utilizado
  * @property {number} [confidence] - Confiança da resposta (0-1)
+ * @property {boolean} [persisted] - Se a mensagem foi persistida no histórico
  * @property {string} timestamp - ISO 8601 timestamp
  */
 
@@ -48,6 +49,7 @@
  * @property {Array<SourceDocument>} [sources] - Fontes (apenas assistant)
  * @property {string} [modelUsed] - Modelo usado (apenas assistant)
  * @property {number} [confidence] - Confiança (apenas assistant)
+ * @property {boolean} [persisted] - Se a mensagem foi persistida no histórico
  */
 
 /**

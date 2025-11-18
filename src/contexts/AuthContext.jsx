@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import authService from '../services/api/authService';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 
 /**
  * Context de autenticação
@@ -25,6 +25,7 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(authService.getStoredToken());
+  const [refreshToken, setRefreshToken] = useState(authService.getStoredRefreshToken());
   const [loading, setLoading] = useState(true);
   const [initializing, setInitializing] = useState(true);
 
@@ -38,14 +39,22 @@ export const AuthProvider = ({ children }) => {
       if (storedToken) {
         try {
           // Tenta buscar os dados do usuário com o token armazenado
-          const userData = await authService.getCurrentUser();
+          const response = await authService.getCurrentUser();
+          // Backend retorna { user: {...}, message: "..." }
+          const userData = response.user || response;
           setUser(userData);
           setToken(storedToken);
+
+          const storedRefreshToken = authService.getStoredRefreshToken();
+          if (storedRefreshToken) {
+            setRefreshToken(storedRefreshToken);
+          }
         } catch (error) {
           // Token inválido ou expirado
           console.error('Token inválido:', error);
-          authService.removeToken();
+          authService.removeTokens();
           setToken(null);
+          setRefreshToken(null);
           setUser(null);
         }
       }
@@ -60,24 +69,22 @@ export const AuthProvider = ({ children }) => {
   /**
    * Faz login do usuário
    */
-  const login = useCallback(async (email, password) => {
+  const login = useCallback(async (username, password) => {
     setLoading(true);
     try {
       // Faz login e recebe os tokens
-      const response = await authService.login(email, password);
+      const response = await authService.login(username, password);
       const { access_token, refresh_token } = response;
 
       // Armazena os tokens
-      authService.setToken(access_token);
+      authService.setTokens(access_token, refresh_token);
       setToken(access_token);
-
-      // Armazena o refresh token se disponível
-      if (refresh_token) {
-        authService.setRefreshToken(refresh_token);
-      }
+      setRefreshToken(refresh_token);
 
       // Busca os dados do usuário
-      const userData = await authService.getCurrentUser();
+      const userResponse = await authService.getCurrentUser();
+      // Backend retorna { user: {...}, message: "..." }
+      const userData = userResponse.user || userResponse;
       setUser(userData);
 
       toast.success(`Bem-vindo, ${userData.username || userData.email}!`);
@@ -93,15 +100,15 @@ export const AuthProvider = ({ children }) => {
   /**
    * Registra um novo usuário
    */
-  const register = useCallback(async (email, password, name) => {
+  const register = useCallback(async (username, email, password) => {
     setLoading(true);
     try {
       // Registra o usuário
-      await authService.register(email, password, name);
+      await authService.register(username, email, password);
 
       // Faz login automaticamente após o registro
       // O toast de boas-vindas será exibido pelo login
-      const loginResult = await login(email, password);
+      const loginResult = await login(username, password);
 
       return loginResult;
     } catch (error) {
@@ -117,19 +124,22 @@ export const AuthProvider = ({ children }) => {
   const logout = useCallback(async () => {
     setLoading(true);
     try {
-      // Chama o endpoint de logout (revoga o token)
-      await authService.logout();
+      // Chama o endpoint de logout (revoga o refresh token)
+      const currentRefreshToken = authService.getStoredRefreshToken();
+      if (currentRefreshToken) {
+        await authService.logout(currentRefreshToken);
+      }
 
-      // Limpa o estado local e tokens
-      authService.removeToken();
-      authService.removeRefreshToken();
+      // Limpa o estado local
+      authService.removeTokens();
       setToken(null);
+      setRefreshToken(null);
       setUser(null);
     } catch (error) {
       // Mesmo se falhar, limpa o estado local
-      authService.removeToken();
-      authService.removeRefreshToken();
+      authService.removeTokens();
       setToken(null);
+      setRefreshToken(null);
       setUser(null);
       console.error('Erro ao fazer logout:', error);
     } finally {
@@ -144,7 +154,9 @@ export const AuthProvider = ({ children }) => {
     if (!token) return;
 
     try {
-      const userData = await authService.getCurrentUser();
+      const response = await authService.getCurrentUser();
+      // Backend retorna { user: {...}, message: "..." }
+      const userData = response.user || response;
       setUser(userData);
     } catch (error) {
       console.error('Erro ao atualizar dados do usuário:', error);
@@ -153,10 +165,41 @@ export const AuthProvider = ({ children }) => {
     }
   }, [token, logout]);
 
+  /**
+   * Atualiza o access token usando o refresh token
+   */
+  const refreshAccessToken = useCallback(async () => {
+    const currentRefreshToken = authService.getStoredRefreshToken();
+
+    if (!currentRefreshToken) {
+      console.warn('Nenhum refresh token disponível');
+      await logout();
+      return false;
+    }
+
+    try {
+      const response = await authService.refreshAccessToken(currentRefreshToken);
+      const { access_token, refresh_token } = response;
+
+      // Atualiza os tokens
+      authService.setTokens(access_token, refresh_token);
+      setToken(access_token);
+      setRefreshToken(refresh_token);
+
+      return true;
+    } catch (error) {
+      console.error('Erro ao renovar token:', error);
+      // Se falhar, faz logout
+      await logout();
+      return false;
+    }
+  }, [logout]);
+
   const value = {
     // Estado
     user,
     token,
+    refreshToken,
     isAuthenticated: !!token && !!user,
     isAdmin: user?.is_admin || false,
     loading,
@@ -167,6 +210,7 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     refreshUser,
+    refreshAccessToken,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

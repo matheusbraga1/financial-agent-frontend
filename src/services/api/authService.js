@@ -1,20 +1,22 @@
 import api from './axios.config';
+import { AUTH_ERRORS, extractErrorMessage } from '../../constants/errorMessages';
 
 /**
  * Serviço de autenticação
  * Integração com endpoints de autenticação do backend
+ * Usa mensagens de erro padronizadas e profissionais
  */
 const authService = {
   /**
    * Faz login do usuário
-   * @param {string} email - Email do usuário
+   * @param {string} username - Nome de usuário (ou email)
    * @param {string} password - Senha do usuário
    * @returns {Promise<{access_token: string, refresh_token: string, token_type: string, expires_in: number}>}
    */
-  async login(email, password) {
+  async login(username, password) {
     try {
       const response = await api.post('/auth/login', {
-        username: email, // Backend espera 'username'
+        username,
         password,
       });
       return response.data;
@@ -25,15 +27,15 @@ const authService = {
 
   /**
    * Registra um novo usuário
+   * @param {string} username - Nome de usuário (3-50 caracteres)
    * @param {string} email - Email do usuário
-   * @param {string} password - Senha do usuário
-   * @param {string} name - Nome do usuário (opcional)
-   * @returns {Promise<{id: number, email: string, name: string, is_active: boolean}>}
+   * @param {string} password - Senha do usuário (mínimo 8 caracteres)
+   * @returns {Promise<{id: number, username: string, email: string, is_active: boolean, is_admin: boolean, created_at: string}>}
    */
-  async register(email, password, name) {
+  async register(username, email, password) {
     try {
       const response = await api.post('/auth/register', {
-        username: name || email.split('@')[0], // Backend espera 'username'
+        username,
         email,
         password,
       });
@@ -44,76 +46,59 @@ const authService = {
   },
 
   /**
-   * Faz logout do usuário (revoga o token)
-   * @returns {Promise<void>}
+   * Faz logout do usuário (revoga o refresh token)
+   * @param {string} refreshToken - Refresh token para revogar
+   * @returns {Promise<{message: string}>}
    */
-  async logout() {
+  async logout(refreshToken) {
     try {
-      await api.post('/auth/logout');
-    } catch (error) {
-      // Mesmo se falhar, vamos limpar o token localmente
-      console.error('Erro ao fazer logout:', error);
-    }
-  },
-
-  /**
-   * Renova o access token usando o refresh token
-   * @returns {Promise<{access_token: string, refresh_token: string, token_type: string, expires_in: number}>}
-   */
-  async refreshToken() {
-    try {
-      const refreshToken = this.getStoredRefreshToken();
-      if (!refreshToken) {
-        throw new Error('Refresh token não encontrado');
-      }
-
-      const response = await api.post('/auth/refresh', {
+      const response = await api.post('/auth/logout', {
         refresh_token: refreshToken,
       });
       return response.data;
     } catch (error) {
-      // Se o refresh falhar, remove os tokens
-      this.removeToken();
-      this.removeRefreshToken();
+      // Mesmo se falhar, vamos limpar o token localmente
+      console.error('Erro ao fazer logout:', error);
       throw this._handleError(error);
     }
   },
 
   /**
    * Busca informações do usuário atual
-   * @returns {Promise<{id: number, email: string, name: string, is_active: boolean, is_admin: boolean}>}
+   * @returns {Promise<{user: {id: number, username: string, email: string, is_active: boolean, is_admin: boolean, created_at: string}, message: string}>}
    */
   async getCurrentUser() {
     try {
       const response = await api.get('/auth/me');
-      // Backend retorna estrutura { success, data, message }
-      return response.data?.data || response.data;
+      // Backend retorna { user: {...}, message: "..." }
+      return response.data;
     } catch (error) {
       throw this._handleError(error);
     }
   },
 
   /**
-   * Verifica se existe um token armazenado
+   * Atualiza o access token usando o refresh token
+   * @param {string} refreshToken - Refresh token
+   * @returns {Promise<{access_token: string, refresh_token: string, token_type: string, expires_in: number}>}
+   */
+  async refreshAccessToken(refreshToken) {
+    try {
+      const response = await api.post('/auth/refresh', {
+        refresh_token: refreshToken,
+      });
+      return response.data;
+    } catch (error) {
+      throw this._handleError(error);
+    }
+  },
+
+  /**
+   * Verifica se existe um access token armazenado
    * @returns {string|null}
    */
   getStoredToken() {
     return localStorage.getItem('auth_token');
-  },
-
-  /**
-   * Armazena o token no localStorage
-   * @param {string} token - Token JWT
-   */
-  setToken(token) {
-    localStorage.setItem('auth_token', token);
-  },
-
-  /**
-   * Remove o token do localStorage
-   */
-  removeToken() {
-    localStorage.removeItem('auth_token');
   },
 
   /**
@@ -125,48 +110,85 @@ const authService = {
   },
 
   /**
-   * Armazena o refresh token no localStorage
-   * @param {string} token - Refresh Token JWT
+   * Armazena os tokens no localStorage
+   * @param {string} accessToken - Access token JWT
+   * @param {string} refreshToken - Refresh token JWT
    */
-  setRefreshToken(token) {
-    localStorage.setItem('refresh_token', token);
+  setTokens(accessToken, refreshToken) {
+    localStorage.setItem('auth_token', accessToken);
+    localStorage.setItem('refresh_token', refreshToken);
   },
 
   /**
-   * Remove o refresh token do localStorage
+   * Armazena apenas o access token no localStorage
+   * @param {string} token - Token JWT
    */
-  removeRefreshToken() {
+  setToken(token) {
+    localStorage.setItem('auth_token', token);
+  },
+
+  /**
+   * Remove os tokens do localStorage
+   */
+  removeTokens() {
+    localStorage.removeItem('auth_token');
     localStorage.removeItem('refresh_token');
   },
 
   /**
-   * Trata erros da API e retorna mensagens amigáveis
+   * Remove apenas o access token do localStorage (compatibilidade)
+   */
+  removeToken() {
+    localStorage.removeItem('auth_token');
+  },
+
+  /**
+   * Trata erros da API e retorna mensagens amigáveis e profissionais
    * @private
    */
   _handleError(error) {
     if (error.response) {
       const { status, data } = error.response;
+      const detail = data?.detail || '';
 
-      // Mapeamento de erros comuns
-      const errorMessages = {
-        400: data?.detail || 'Dados inválidos. Verifique os campos.',
-        401: 'Credenciais inválidas. Verifique seu email e senha.',
-        403: 'Acesso negado. Você não tem permissão para esta ação.',
-        409: 'Este email já está cadastrado.',
-        422: 'Dados inválidos. Verifique os campos.',
-        500: 'Erro no servidor. Tente novamente mais tarde.',
+      // Mapeamento específico de erros de autenticação
+      const errorMap = {
+        400: detail.toLowerCase().includes('password')
+          ? AUTH_ERRORS.WEAK_PASSWORD
+          : AUTH_ERRORS.INVALID_CREDENTIALS,
+        401: detail.toLowerCase().includes('token')
+          ? AUTH_ERRORS.INVALID_TOKEN
+          : AUTH_ERRORS.INVALID_CREDENTIALS,
+        403: AUTH_ERRORS.PERMISSION_DENIED || { message: 'Acesso negado' },
+        404: AUTH_ERRORS.USER_NOT_FOUND,
+        409: detail.toLowerCase().includes('username')
+          ? AUTH_ERRORS.USERNAME_TAKEN
+          : AUTH_ERRORS.EMAIL_TAKEN,
+        422: detail.toLowerCase().includes('password')
+          ? AUTH_ERRORS.WEAK_PASSWORD
+          : { message: data?.detail || 'Dados inválidos. Verifique os campos.' },
+        423: AUTH_ERRORS.ACCOUNT_LOCKED,
       };
 
-      const message = errorMessages[status] || data?.detail || 'Erro desconhecido';
+      const errorObj = errorMap[status] || extractErrorMessage(error);
 
-      return new Error(message);
+      // Criar erro com mensagem formatada
+      const err = new Error(errorObj.message || data?.detail || 'Erro na autenticação');
+      err.title = errorObj.title;
+      err.suggestion = errorObj.suggestion;
+      err.statusCode = status;
+
+      return err;
     }
 
     if (error.request) {
-      return new Error('Não foi possível conectar ao servidor. Verifique sua conexão.');
+      const err = new Error('Não foi possível conectar ao servidor. Verifique sua conexão com a internet.');
+      err.title = 'Erro de Conexão';
+      err.suggestion = 'Verifique se você está conectado à internet e tente novamente.';
+      return err;
     }
 
-    return new Error(error.message || 'Erro inesperado');
+    return new Error(error.message || 'Erro inesperado ao processar autenticação');
   },
 };
 

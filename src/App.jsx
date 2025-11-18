@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Toaster } from 'react-hot-toast';
+import { Toaster } from 'sonner';
 import { ErrorBoundary } from './components/common';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -17,56 +17,18 @@ function App() {
     <ErrorBoundary showDetails={import.meta.env.DEV}>
       <Router>
         <AuthProvider>
-          {/* Toast notifications - Posicionado no canto superior direito */}
+          {/* Toast notifications - Sonner (Modern toast library) */}
           <Toaster
             position="top-right"
+            expand={false}
+            richColors
+            closeButton
+            duration={4000}
             toastOptions={{
-              duration: 4000,
+              className: 'font-sans',
               style: {
-                borderRadius: '10px',
-                padding: '14px 18px',
-                fontSize: '14px',
-                maxWidth: '500px',
-              },
-              // Success toast - Verde da empresa
-              success: {
-                iconTheme: {
-                  primary: '#00884f', // primary-600
-                  secondary: '#fff',
-                },
-                style: {
-                  background: '#e6f5ef', // primary-50
-                  color: '#004427', // primary-800
-                  border: '1px solid #66c39f', // primary-300
-                },
-                className: 'dark:!bg-primary-900/30 dark:!text-primary-200 dark:!border-primary-700',
-              },
-              // Error toast
-              error: {
-                iconTheme: {
-                  primary: '#dc2626',
-                  secondary: '#fff',
-                },
-                style: {
-                  background: '#fef2f2',
-                  color: '#991b1b',
-                  border: '1px solid #fca5a5',
-                },
-                className: 'dark:!bg-red-900/30 dark:!text-red-200 dark:!border-red-700',
-                duration: 5000,
-              },
-              // Loading toast - Verde da empresa
-              loading: {
-                iconTheme: {
-                  primary: '#00884f', // primary-600
-                  secondary: '#fff',
-                },
-                style: {
-                  background: '#f9fafb',
-                  color: '#374151',
-                  border: '1px solid #e5e7eb',
-                },
-                className: 'dark:!bg-dark-card dark:!text-gray-200 dark:!border-dark-border',
+                borderRadius: '12px',
+                padding: '16px',
               },
             }}
           />

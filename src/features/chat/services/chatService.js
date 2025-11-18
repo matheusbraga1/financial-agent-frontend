@@ -2,23 +2,31 @@ import { apiClient } from '../../../services/api/axios.config';
 import { config } from '../../../config/env';
 import { handleApiError } from '../../../utils';
 import { STREAM_TIMEOUT } from '../../../constants/apiConstants';
+import { CHAT_ERRORS, NETWORK_ERRORS, extractErrorMessage } from '../../../constants/errorMessages';
 import {
   adaptChatHistory,
   adaptSessions,
   adaptStreamEvent,
+  adaptChatResponse,
   prepareFeedbackPayload,
 } from '../adapters/chatAdapter';
 
 /**
  * Serviço de Chat - Comunicação com a API de Chat
  * Sincronizado com backend FastAPI
+ * Usa mensagens de erro padronizadas e profissionais
  */
 class ChatService {
+  constructor() {
+    // Armazena o AbortController atual para permitir cancelamento
+    this.currentStreamController = null;
+  }
+
   /**
    * Envia mensagem e recebe resposta completa (sem streaming)
    * @param {string} question - Pergunta do usuário
    * @param {string|null} sessionId - ID da sessão (opcional)
-   * @returns {Promise<{answer: string, sources: Array, model_used: string, session_id: string}>}
+   * @returns {Promise<{content: string, sources: Array, modelUsed: string, sessionId: string}>}
    */
   async sendMessage(question, sessionId = null) {
     try {
@@ -26,9 +34,42 @@ class ChatService {
         question,
         session_id: sessionId
       });
-      return response.data;
+
+      // Adapta a resposta do backend para o formato do frontend
+      return adaptChatResponse(response.data);
     } catch (error) {
       throw handleApiError(error);
+    }
+  }
+
+  /**
+   * Aborta o streaming atual (apenas frontend)
+   */
+  abortStream() {
+    if (this.currentStreamController) {
+      this.currentStreamController.abort();
+      this.currentStreamController = null;
+    }
+  }
+
+  /**
+   * Cancela a geração no backend
+   * @param {string} sessionId - ID da sessão para cancelar
+   * @returns {Promise<{message: string}>}
+   */
+  async cancelStream(sessionId) {
+    try {
+      if (!sessionId) {
+        console.warn('cancelStream: sessionId não fornecido');
+        return;
+      }
+
+      const response = await apiClient.delete(`/chat/stream/${sessionId}`);
+      return response.data;
+    } catch (error) {
+      // Log silencioso - não precisa mostrar erro ao usuário
+      // pois o stream já foi abortado no frontend
+      console.debug('Erro ao cancelar stream no backend:', error?.message);
     }
   }
 
@@ -42,7 +83,13 @@ class ChatService {
    */
   async sendMessageStream(question, sessionId, onMessage, onError, onComplete) {
     const url = `${config.apiUrl}/chat/stream`;
-    const controller = new AbortController();
+
+    // Aborta stream anterior se existir
+    this.abortStream();
+
+    // Cria novo controller e armazena
+    this.currentStreamController = new AbortController();
+    const controller = this.currentStreamController;
     const timeoutId = setTimeout(() => controller.abort(), STREAM_TIMEOUT);
 
     try {
@@ -70,39 +117,70 @@ class ChatService {
       if (!response.ok) {
         const errorText = await response.text();
         let errorMessage = `Erro ${response.status}: ${response.statusText}`;
-        
+
         try {
           const errorJson = JSON.parse(errorText);
           errorMessage = errorJson.detail || errorMessage;
         } catch {
           // Se não for JSON, usar mensagem padrão
         }
-        
+
         throw new Error(errorMessage);
       }
 
       await this._processStream(response, onMessage, onComplete);
     } catch (error) {
       console.error('Erro no streaming:', error);
-      
-      let friendlyMessage = 'Erro ao conectar com o servidor';
-      
-      if (error.name === 'AbortError') {
-        friendlyMessage = 'Tempo limite excedido. Tente novamente.';
-      } else if (error.message.includes('Failed to fetch')) {
-        friendlyMessage = 'Sem conexão com o servidor. Verifique sua internet.';
-      } else if (error.message.includes('500')) {
-        friendlyMessage = 'Erro interno do servidor. Nossa equipe foi notificada.';
-      } else if (error.message.includes('429')) {
-        friendlyMessage = 'Muitas requisições. Aguarde alguns segundos.';
-      } else if (error.message) {
-        friendlyMessage = error.message;
+
+      // Se foi abortado manualmente pelo usuário, não mostra erro
+      if (error.name === 'AbortError' && !controller.signal.aborted) {
+        // Silenciosamente retorna - usuário clicou em parar
+        return;
       }
-      
-      onError?.(new Error(friendlyMessage));
+
+      let errorObj;
+
+      // Timeout
+      if (error.name === 'AbortError') {
+        errorObj = NETWORK_ERRORS.TIMEOUT;
+      }
+      // Erro de rede/conexão
+      else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+        errorObj = NETWORK_ERRORS.NO_CONNECTION;
+      }
+      // Erro do servidor
+      else if (error.message.includes('500') || error.message.includes('502') || error.message.includes('503')) {
+        errorObj = NETWORK_ERRORS.SERVER_ERROR;
+      }
+      // Rate limit
+      else if (error.message.includes('429')) {
+        errorObj = NETWORK_ERRORS.RATE_LIMIT;
+      }
+      // Conexão de stream interrompida
+      else if (error.message.includes('stream') || error.message.includes('connection')) {
+        errorObj = CHAT_ERRORS.STREAM_CONNECTION_FAILED;
+      }
+      // Erro genérico
+      else {
+        errorObj = {
+          title: 'Erro na comunicação',
+          message: error.message || CHAT_ERRORS.SEND_MESSAGE_FAILED.message,
+          suggestion: CHAT_ERRORS.SEND_MESSAGE_FAILED.suggestion,
+        };
+      }
+
+      // Criar erro formatado
+      const formattedError = new Error(errorObj.message);
+      formattedError.title = errorObj.title;
+      formattedError.suggestion = errorObj.suggestion;
+
+      onError?.(formattedError);
     } finally {
       clearTimeout(timeoutId);
-      controller.abort();
+      // Limpa o controller se ainda for o atual
+      if (this.currentStreamController === controller) {
+        this.currentStreamController = null;
+      }
     }
   }
 
@@ -149,8 +227,14 @@ class ChatService {
     if (!payload) return;
 
     try {
-      const data = JSON.parse(payload);
-      onMessage?.(data);
+      const rawData = JSON.parse(payload);
+
+      // Adapta o evento SSE do backend para o formato esperado pelo frontend
+      const adaptedData = adaptStreamEvent(rawData);
+
+      if (adaptedData) {
+        onMessage?.(adaptedData);
+      }
     } catch (e) {
       console.error('Erro ao parsear SSE:', e, 'Payload:', payload);
     }

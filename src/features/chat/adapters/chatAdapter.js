@@ -36,6 +36,7 @@ export const adaptHistoryMessage = (backendMessage) => {
     sources = [],
     model_used,
     confidence,
+    persisted,
     timestamp,
   } = backendMessage;
 
@@ -65,7 +66,7 @@ export const adaptHistoryMessage = (backendMessage) => {
     sources: Array.isArray(sources) ? sources : [],
     modelUsed: model_used || '',
     confidence: typeof confidence === 'number' ? confidence : undefined,
-    messageId: message_id, // ID para usar no feedback
+    persisted: typeof persisted === 'boolean' ? persisted : false,
   };
 };
 
@@ -178,25 +179,87 @@ export const adaptSessions = (backendSessions) => {
 /**
  * Converte resposta de streaming SSE para formato padronizado
  *
- * @param {Object} sseData - Dados do evento SSE
- * @returns {Object} Dados normalizados
+ * Backend envia eventos no formato:
+ * - Token: { type: 'token', data: 'texto' }
+ * - Sources: { type: 'sources', data: [...] }
+ * - Confidence: { type: 'confidence', data: 0.95 }
+ * - Metadata: { type: 'metadata', data: { session_id, message_id, ... } }
+ * - Done: { type: 'done' }
+ *
+ * Frontend espera:
+ * - Token: { type: 'token', content: 'texto' }
+ * - Sources: { type: 'sources', sources: [...] }
+ * - Confidence: { type: 'confidence', confidence: 0.95 }
+ * - Metadata: { type: 'metadata', session_id, message_id, ... }
+ * - Done: { type: 'done' }
+ *
+ * @param {Object} sseData - Dados do evento SSE do backend
+ * @returns {Object} Dados normalizados para o frontend
  */
 export const adaptStreamEvent = (sseData) => {
-  if (!sseData || typeof sseData !== 'object') {
+  if (!sseData || typeof sseData !== 'object' || !sseData.type) {
     return null;
   }
 
-  // Já vem no formato correto, apenas normaliza
-  return {
-    type: sseData.type,
-    content: sseData.content,
-    sources: sseData.sources,
-    confidence: sseData.confidence,
-    model_used: sseData.model_used,
-    session_id: sseData.session_id,
-    message_id: sseData.message_id,
-    persisted: sseData.persisted,
-  };
+  const { type, data } = sseData;
+
+  // Evento 'done' não tem dados adicionais
+  if (type === 'done') {
+    return { type: 'done' };
+  }
+
+  // Evento 'error' - repassa a mensagem de erro
+  if (type === 'error') {
+    return {
+      type: 'error',
+      message: data?.message || 'Erro desconhecido',
+    };
+  }
+
+  // Evento 'token' - converte 'data' para 'content'
+  if (type === 'token') {
+    return {
+      type: 'token',
+      content: typeof data === 'string' ? data : '',
+    };
+  }
+
+  // Evento 'sources' - converte 'data' para 'sources'
+  if (type === 'sources') {
+    return {
+      type: 'sources',
+      sources: Array.isArray(data) ? data : [],
+    };
+  }
+
+  // Evento 'confidence' - converte 'data' para 'confidence'
+  if (type === 'confidence') {
+    return {
+      type: 'confidence',
+      confidence: typeof data === 'number' ? data : null,
+    };
+  }
+
+  // Evento 'metadata' - espalha os dados do objeto data diretamente
+  if (type === 'metadata') {
+    if (typeof data !== 'object') {
+      return null;
+    }
+
+    return {
+      type: 'metadata',
+      session_id: data.session_id,
+      message_id: data.message_id,
+      model_used: data.model_used,
+      confidence: data.confidence,
+      persisted: data.persisted,
+      timestamp: data.timestamp,
+    };
+  }
+
+  // Tipo desconhecido - retorna como está
+  console.warn('Tipo de evento SSE desconhecido:', type);
+  return { type, data };
 };
 
 /**
@@ -257,6 +320,47 @@ const normalizeRating = (rating) => {
   }
 
   return null;
+};
+
+/**
+ * Adapta resposta completa (não-streaming) do backend
+ *
+ * Backend retorna:
+ * - answer: string (conteúdo da resposta)
+ * - sources: Array
+ * - confidence: number
+ * - model_used: string
+ * - session_id: string
+ * - persisted: boolean
+ * - message_id: string (opcional)
+ *
+ * Frontend espera:
+ * - content: string (não "answer")
+ * - sources, confidence, modelUsed (camelCase)
+ *
+ * @param {Object} backendResponse - Resposta do endpoint POST /chat
+ * @returns {Object} Resposta adaptada para o frontend
+ */
+export const adaptChatResponse = (backendResponse) => {
+  if (!backendResponse || typeof backendResponse !== 'object') {
+    console.error('adaptChatResponse recebeu dados inválidos:', backendResponse);
+    return {
+      content: '',
+      sources: [],
+      modelUsed: '',
+      sessionId: null,
+    };
+  }
+
+  return {
+    content: backendResponse.answer || '',
+    sources: Array.isArray(backendResponse.sources) ? backendResponse.sources : [],
+    confidence: typeof backendResponse.confidence === 'number' ? backendResponse.confidence : undefined,
+    modelUsed: backendResponse.model_used || '',
+    sessionId: backendResponse.session_id || null,
+    messageId: backendResponse.message_id || null,
+    persisted: backendResponse.persisted || false,
+  };
 };
 
 /**

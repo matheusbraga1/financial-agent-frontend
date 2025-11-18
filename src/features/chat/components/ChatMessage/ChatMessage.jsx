@@ -1,5 +1,7 @@
-﻿import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, memo, useMemo, useCallback } from 'react';
+import PropTypes from 'prop-types';
 import { Bot, User, Copy, Check, ThumbsUp, ThumbsDown, MessageCircle } from 'lucide-react';
+import { useMessageActions } from '../../hooks';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import ReactMarkdown from 'react-markdown';
@@ -10,40 +12,12 @@ import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import SourcesList from '../SourcesList';
 import { MESSAGE_TYPES, AGENT_NAME } from '../../constants/chatConstants';
 
-const ChatMessage = ({ message, isStreaming = false, onFeedback, feedbackState }) => {
+const ChatMessage = memo(({ message, isStreaming = false, onFeedback, feedbackState }) => {
   const isUser = message?.type === MESSAGE_TYPES.USER;
-  const [copied, setCopied] = useState(false);
+  const { copied, handleCopy } = useMessageActions(message);
   const [isCommentOpen, setIsCommentOpen] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [commentTone, setCommentTone] = useState('negative');
-  const copyTimeoutRef = useRef(null);
-
-  // FIX: Cleanup de timeout ao desmontar componente
-  useEffect(() => {
-    return () => {
-      if (copyTimeoutRef.current) {
-        clearTimeout(copyTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(message?.content || '');
-      setCopied(true);
-
-      // FIX: Limpar timeout anterior e armazenar referência
-      if (copyTimeoutRef.current) {
-        clearTimeout(copyTimeoutRef.current);
-      }
-      copyTimeoutRef.current = setTimeout(() => {
-        setCopied(false);
-        copyTimeoutRef.current = null;
-      }, 2000);
-    } catch (err) {
-      console.error('Erro ao copiar:', err);
-    }
-  };
 
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return '';
@@ -297,9 +271,17 @@ const ChatMessage = ({ message, isStreaming = false, onFeedback, feedbackState }
 
         <div className="relative">
           <div className="max-w-none break-words text-gray-900 dark:text-gray-100">
-            {renderMarkdownContent(message?.content)}
-            {isStreaming && message?.content && (
-              <span className="inline-block w-1.5 h-5 bg-primary-600 dark:bg-primary-500 ml-0.5 animate-blink align-middle" />
+            {message?.content ? (
+              <>
+                {renderMarkdownContent(message.content)}
+                {isStreaming && (
+                  <span className="inline-block w-1.5 h-5 bg-primary-600 dark:bg-primary-500 ml-0.5 animate-blink align-middle" />
+                )}
+              </>
+            ) : isStreaming ? (
+              <span className="inline-block w-1.5 h-5 bg-primary-600 dark:bg-primary-500 animate-blink align-middle" />
+            ) : (
+              <span className="text-gray-400 dark:text-gray-500 italic text-sm">Sem conteúdo</span>
             )}
           </div>
 
@@ -463,6 +445,36 @@ const ChatMessage = ({ message, isStreaming = false, onFeedback, feedbackState }
       </div>
     </div>
   );
+}, (prevProps, nextProps) => {
+  // Memo comparison: só re-renderiza se essas props mudarem
+  return (
+    prevProps.message.id === nextProps.message.id &&
+    prevProps.message.content === nextProps.message.content &&
+    prevProps.isStreaming === nextProps.isStreaming &&
+    prevProps.feedbackState === nextProps.feedbackState
+  );
+});
+
+ChatMessage.propTypes = {
+  message: PropTypes.shape({
+    id: PropTypes.string,
+    type: PropTypes.string,
+    content: PropTypes.string,
+    timestamp: PropTypes.string,
+    sources: PropTypes.arrayOf(
+      PropTypes.shape({
+        document_name: PropTypes.string,
+        page_number: PropTypes.number,
+        relevance_score: PropTypes.number,
+      })
+    ),
+  }).isRequired,
+  isStreaming: PropTypes.bool,
+  onFeedback: PropTypes.func,
+  feedbackState: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
 };
+
+ChatMessage.displayName = 'ChatMessage';
+
 export default ChatMessage;
 

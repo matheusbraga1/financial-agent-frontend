@@ -6,3 +6,4 @@ export { default as ErrorMessage } from './ErrorMessage';
 export { default as LoadingIndicator } from './LoadingIndicator';
 export { default as MessageSkeleton } from './MessageSkeleton';
 export { default as MessageFeedback } from './MessageFeedback';
+export { default as TypingIndicator } from './TypingIndicator';
