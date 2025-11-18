@@ -69,7 +69,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gray-50 dark:bg-dark-bg px-3 py-4 sm:px-4 sm:py-6 md:py-3">
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gray-50 dark:bg-dark-bg px-3 py-4 sm:px-4 sm:py-6 md:py-2">
       {/* Background mesh gradient animado */}
       <div className="fixed inset-0 bg-gradient-mesh dark:bg-gradient-mesh-dark opacity-60 sm:opacity-100" />
 
@@ -103,7 +103,7 @@ const Login = () => {
 
       {/* Container principal - Otimizado para mobile */}
       <motion.div
-        className="max-w-md w-full space-y-3 sm:space-y-4 md:space-y-3 relative z-10"
+        className="max-w-md w-full space-y-3 sm:space-y-4 md:space-y-2.5 relative z-10"
         variants={staggerContainer}
         initial="initial"
         animate="animate"
@@ -144,7 +144,7 @@ const Login = () => {
             rounded-xl sm:rounded-2xl
             shadow-2xl shadow-black/10 dark:shadow-black/30
             border border-white/20 dark:border-white/10
-            p-4 sm:p-6 md:p-6
+            p-4 sm:p-6 md:p-5
             relative
             overflow-hidden
           "
@@ -155,7 +155,7 @@ const Login = () => {
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full animate-shimmer" />
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-3.5 sm:space-y-4 md:space-y-3 relative">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-3.5 sm:space-y-4 md:space-y-2.5 relative">
             {/* Username - Mobile optimized */}
             <motion.div variants={staggerItem}>
               <label
@@ -377,7 +377,7 @@ const Login = () => {
 
           {/* Link para registro - Touch-friendly */}
           <motion.div
-            className="mt-3 sm:mt-4 md:mt-3 text-center"
+            className="mt-3 sm:mt-4 md:mt-2.5 text-center"
             variants={staggerItem}
           >
             <p className="text-sm sm:text-sm text-gray-600 dark:text-gray-400">
