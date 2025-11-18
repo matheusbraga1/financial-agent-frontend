@@ -84,13 +84,8 @@ const ChatInput = ({ onSendMessage, onStopGeneration, isLoading, isStreaming }) 
 
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-3xl mx-auto px-3 sm:px-4 lg:px-0">
-      {/* Container principal com gradiente sutil */}
+      {/* Container principal */}
       <div className="relative">
-        {/* Gradiente de fundo quando focado */}
-        {isFocused && (
-          <div className="absolute inset-0 bg-gradient-to-r from-primary-500/10 via-primary-600/5 to-secondary-500/10 dark:from-primary-700/20 dark:via-primary-800/10 dark:to-secondary-700/20 rounded-2xl sm:rounded-3xl blur-xl -z-10 animate-pulse-soft" />
-        )}
-
         {/* Input principal */}
         <div
           className={`
@@ -103,14 +98,6 @@ const ChatInput = ({ onSendMessage, onStopGeneration, isLoading, isStreaming }) 
             }
           `}
         >
-          {/* Indicador de IA ativo (quando focado) */}
-          {isFocused && (
-            <div className="absolute -top-3 left-4 sm:left-6 px-2 sm:px-3 py-1 bg-gradient-to-r from-primary-600 to-primary-500 dark:from-primary-500 dark:to-primary-400 text-white text-[10px] sm:text-xs font-medium rounded-full shadow-lg flex items-center gap-1 animate-fade-in">
-              <Sparkles className="w-3 h-3 animate-pulse" />
-              <span className="hidden sm:inline">Agente Financial ativo</span>
-              <span className="sm:hidden">Ativo</span>
-            </div>
-          )}
 
           <textarea
             ref={textareaRef}
@@ -231,10 +218,10 @@ const ChatInput = ({ onSendMessage, onStopGeneration, isLoading, isStreaming }) 
           </div>
         </div>
 
-        {/* Dicas de atalhos - Desktop */}
+        {/* Dicas de atalhos - Desktop (discreto) */}
         <div
           id="input-help"
-          className="hidden md:flex items-center justify-center gap-3 mt-3 text-xs text-gray-500 dark:text-gray-400"
+          className="hidden md:flex items-center justify-center gap-3 mt-3 text-xs text-gray-400 dark:text-gray-500 opacity-60"
         >
           <div className="flex items-center gap-1.5">
             <kbd className="px-2 py-1 bg-gray-100 dark:bg-dark-hover border border-gray-300 dark:border-dark-border rounded-md text-xs font-medium text-gray-700 dark:text-gray-300 shadow-sm">
@@ -255,11 +242,6 @@ const ChatInput = ({ onSendMessage, onStopGeneration, isLoading, isStreaming }) 
             </kbd>
             <span>nova linha</span>
           </div>
-        </div>
-
-        {/* Dica mobile simplificada */}
-        <div className="md:hidden mt-2 text-center text-[10px] text-gray-400 dark:text-gray-500">
-          Toque e segure para nova linha
         </div>
       </div>
     </form>

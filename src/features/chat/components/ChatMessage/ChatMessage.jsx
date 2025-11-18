@@ -287,7 +287,7 @@ const ChatMessage = memo(({ message, isStreaming = false, onFeedback, feedbackSt
 
           <button
             onClick={handleCopy}
-            className="absolute -left-8 top-0 p-1.5 rounded-md transition-all opacity-0 group-hover:opacity-100 bg-gray-100 dark:bg-dark-hover hover:bg-gray-200 dark:hover:bg-primary-900/30"
+            className="absolute top-2 right-2 p-1.5 rounded-md transition-all opacity-0 group-hover:opacity-100 bg-gray-100 dark:bg-dark-hover hover:bg-gray-200 dark:hover:bg-primary-900/30"
             title={copied ? 'Copiado!' : 'Copiar mensagem'}
             aria-label="Copiar mensagem"
           >
@@ -299,85 +299,61 @@ const ChatMessage = memo(({ message, isStreaming = false, onFeedback, feedbackSt
           </button>
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-          {message?.modelUsed && (
-            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-gray-100 dark:bg-dark-hover">
-              Modelo:
-              <strong className="font-semibold">{message.modelUsed}</strong>
-            </span>
-          )}
-          {typeof message?.confidence === 'number' && (
-            <span className="inline-flex items-center gap-1">
-              Confiança:
-              <strong className="font-semibold">
-                {(message.confidence * 100).toFixed(0)}%
-              </strong>
-            </span>
-          )}
-          {message?.timestamp && (
-            <span className="inline-flex items-center gap-1">
-              Atualizado {formatTimestamp(message.timestamp)}
-            </span>
-          )}
-        </div>
-
         {message?.sources?.length > 0 && <SourcesList sources={message.sources} />}
 
         {message?.messageId && onFeedback && (
-          <div className="mt-4 border border-gray-200 dark:border-dark-border rounded-lg px-4 py-3 bg-white dark:bg-dark-card">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
-                Essa resposta foi util?
-              </p>
-              {feedbackState?.submitted && (
-                <span className="text-xs text-primary-600 dark:text-primary-400 font-semibold">
-                  Obrigado pelo feedback!
-                </span>
-              )}
-              {feedbackState?.error && (
-                <span className="text-xs text-red-600 dark:text-red-400">
-                  {feedbackState.error}
-                </span>
-              )}
-            </div>
-
+          <div className="mt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 disabled={feedbackState?.submitting}
                 onClick={() => handleFeedbackClick('positive')}
-                className={`px-3 py-1.5 rounded-md border flex items-center gap-1 text-sm transition-colors ${
+                className={`p-2 rounded-md transition-colors ${
                   feedbackState?.value === 'positive'
-                    ? 'border-green-500 text-green-600 bg-green-50 dark:bg-green-900/20'
-                    : 'border-gray-200 text-gray-600 dark:text-gray-300 hover:border-green-300'
+                    ? 'text-green-600 bg-green-50 dark:bg-green-900/20'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20'
                 }`}
+                title="Útil"
+                aria-label="Resposta útil"
               >
                 <ThumbsUp className="w-4 h-4" />
-                Útil
               </button>
 
               <button
                 type="button"
                 disabled={feedbackState?.submitting}
                 onClick={() => handleFeedbackClick('negative')}
-                className={`px-3 py-1.5 rounded-md border flex items-center gap-1 text-sm transition-colors ${
+                className={`p-2 rounded-md transition-colors ${
                   feedbackState?.value === 'negative'
-                    ? 'border-red-500 text-red-600 bg-red-50 dark:bg-red-900/20'
-                    : 'border-gray-200 text-gray-600 dark:text-gray-300 hover:border-red-300'
+                    ? 'text-red-600 bg-red-50 dark:bg-red-900/20'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20'
                 }`}
+                title="Melhorar"
+                aria-label="Resposta precisa melhorar"
               >
                 <ThumbsDown className="w-4 h-4" />
-                Melhorar
               </button>
 
               <button
                 type="button"
                 onClick={() => setIsCommentOpen((prev) => !prev)}
-                className="ml-auto text-xs text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 inline-flex items-center gap-1"
+                className="p-2 rounded-md text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-dark-hover transition-colors"
+                title="Adicionar comentário"
+                aria-label="Adicionar comentário"
               >
                 <MessageCircle className="w-4 h-4" />
-                Adicionar comentario
               </button>
+
+              {feedbackState?.submitted && (
+                <span className="ml-auto text-xs text-primary-600 dark:text-primary-400 font-medium">
+                  ✓ Obrigado!
+                </span>
+              )}
+              {feedbackState?.error && (
+                <span className="ml-auto text-xs text-red-600 dark:text-red-400">
+                  Erro
+                </span>
+              )}
             </div>
 
             {isCommentOpen && (

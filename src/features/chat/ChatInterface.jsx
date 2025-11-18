@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { ArrowDown } from 'lucide-react';
 import { useChat, useSmartScroll, useKeyboardShortcuts } from './hooks';
@@ -11,7 +11,6 @@ import {
   TypingIndicator,
   MessageSkeleton,
 } from './components';
-import ModelSelector from './components/ModelSelector';
 
 /**
  * Interface principal do chat - Estilo Claude
@@ -37,7 +36,6 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated, onFi
 
   const messagesEndRef = useRef(null);
   const containerRef = useRef(null);
-  const [selectedModel, setSelectedModel] = useState(null);
 
   // Ref para armazenar callbacks sem causar re-renders
   const onSessionCreatedRef = useRef(onSessionCreated);
@@ -131,7 +129,7 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated, onFi
   // Loading inicial do histórico com skeleton
   if (isLoadingHistory && messages.length === 0) {
     return (
-      <div className="flex flex-col flex-1 bg-gradient-to-br from-primary-50 via-white to-primary-50 dark:from-dark-bg dark:via-dark-card dark:to-dark-bg overflow-hidden relative">
+      <div className="flex flex-col flex-1 bg-gray-50 dark:bg-dark-bg overflow-hidden relative">
         <div className="flex-1 overflow-y-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6">
           <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
             <MessageSkeleton count={3} />
@@ -146,7 +144,7 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated, onFi
   const hasContent = messages.length > 0 || isLoading;
 
   return (
-    <div className="flex flex-col h-full min-h-screen bg-gradient-to-br from-primary-50 via-white to-primary-50 dark:from-dark-bg dark:via-dark-card dark:to-dark-bg relative">
+    <div className="flex flex-col h-full min-h-screen bg-gray-50 dark:bg-dark-bg relative">
       {isEmpty ? (
         /* Layout Centralizado - Claude Style: Logo + Título + Input juntos no centro */
         <div className="flex flex-col h-full min-h-screen animate-fade-in">
@@ -229,20 +227,8 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated, onFi
           )}
 
           {/* Input de mensagens - Fixo no Bottom com Safe Area */}
-          <div className="flex-shrink-0 bg-gradient-to-t from-primary-50 dark:from-dark-bg to-transparent px-3 sm:px-4 md:px-6 py-3 sm:py-4 pb-safe border-t border-gray-100 dark:border-dark-border">
-            <div className="max-w-4xl mx-auto space-y-2 sm:space-y-3">
-              {/* Barra de configurações - ModelSelector */}
-              <div className="flex items-center justify-between px-2">
-                <ModelSelector
-                  onModelChange={(modelInfo) => {
-                    setSelectedModel(modelInfo);
-                    console.log('Modelo selecionado:', modelInfo);
-                  }}
-                  className="flex-shrink-0"
-                />
-              </div>
-
-              {/* ChatInput */}
+          <div className="flex-shrink-0 bg-white dark:bg-dark-card px-3 sm:px-4 md:px-6 py-3 sm:py-4 pb-safe border-t border-gray-200 dark:border-dark-border">
+            <div className="max-w-4xl mx-auto">
               <ChatInput
                 onSendMessage={sendMessage}
                 onStopGeneration={stopGeneration}
