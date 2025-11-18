@@ -144,12 +144,10 @@ export const scaleSpring = {
 // ============================================
 
 export const buttonHover = {
-  scale: 1.02,
-  y: -2,
+  scale: 1.01,
   transition: {
-    type: 'spring',
-    stiffness: 400,
-    damping: 17
+    duration: 0.2,
+    ease: [0.4, 0, 0.2, 1]
   }
 };
 
@@ -162,15 +160,13 @@ export const buttonTap = {
   }
 };
 
-// Hover com shadow
+// Hover com shadow - Sem lift para evitar problemas de UX
 export const buttonHoverWithShadow = {
-  scale: 1.02,
-  y: -2,
-  boxShadow: '0 20px 40px -12px rgba(0, 136, 79, 0.35)',
+  scale: 1.01,
+  boxShadow: '0 12px 28px -8px rgba(0, 136, 79, 0.4)',
   transition: {
-    type: 'spring',
-    stiffness: 400,
-    damping: 17
+    duration: 0.2,
+    ease: [0.4, 0, 0.2, 1]
   }
 };
 

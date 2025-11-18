@@ -69,7 +69,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gray-50 dark:bg-dark-bg px-3 py-6 sm:px-4 sm:py-8 md:py-12">
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gray-50 dark:bg-dark-bg px-3 py-4 sm:px-4 sm:py-6 md:py-8">
       {/* Background mesh gradient animado */}
       <div className="fixed inset-0 bg-gradient-mesh dark:bg-gradient-mesh-dark opacity-60 sm:opacity-100" />
 
@@ -103,7 +103,7 @@ const Login = () => {
 
       {/* Container principal - Otimizado para mobile */}
       <motion.div
-        className="max-w-md w-full space-y-4 sm:space-y-6 md:space-y-8 relative z-10"
+        className="max-w-md w-full space-y-3 sm:space-y-5 md:space-y-6 relative z-10"
         variants={staggerContainer}
         initial="initial"
         animate="animate"
@@ -111,7 +111,7 @@ const Login = () => {
         {/* Logo e título - Mobile-first */}
         <motion.div className="text-center" variants={staggerItem}>
           <motion.div
-            className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-xl md:rounded-2xl bg-gradient-to-br from-primary-100 to-primary-50 dark:from-primary-900/40 dark:to-primary-800/20 mb-3 sm:mb-4 ring-4 ring-primary-100/50 dark:ring-primary-900/30 p-2 sm:p-2.5 md:p-3 shadow-lg"
+            className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-xl md:rounded-2xl bg-gradient-to-br from-primary-100 to-primary-50 dark:from-primary-900/40 dark:to-primary-800/20 mb-2 sm:mb-3 md:mb-4 ring-4 ring-primary-100/50 dark:ring-primary-900/30 p-2 sm:p-2.5 md:p-3 shadow-lg"
             variants={logoEntrance}
           >
             <img
@@ -129,7 +129,7 @@ const Login = () => {
           </motion.h2>
 
           <motion.p
-            className="mt-1.5 sm:mt-2 text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 px-2"
+            className="mt-1 sm:mt-1.5 md:mt-2 text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 px-2"
             variants={fadeInUp}
           >
             Faça login para continuar
@@ -155,7 +155,7 @@ const Login = () => {
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full animate-shimmer" />
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-5 md:space-y-6 relative">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-3.5 sm:space-y-4 md:space-y-5 relative">
             {/* Username - Mobile optimized */}
             <motion.div variants={staggerItem}>
               <label
@@ -254,12 +254,10 @@ const Login = () => {
                 />
 
                 {/* Botão mostrar/ocultar senha */}
-                <motion.button
+                <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors touch-manipulation p-1 rounded-md hover:bg-gray-100 dark:hover:bg-dark-hover"
+                  className="absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-all duration-200 touch-manipulation p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-dark-hover active:scale-95"
                   aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
                 >
                   <AnimatePresence mode="wait">
@@ -285,7 +283,7 @@ const Login = () => {
                       </motion.div>
                     )}
                   </AnimatePresence>
-                </motion.button>
+                </button>
 
                 {/* Animated underline */}
                 <AnimatePresence>
@@ -379,7 +377,7 @@ const Login = () => {
 
           {/* Link para registro - Touch-friendly */}
           <motion.div
-            className="mt-4 sm:mt-5 md:mt-6 text-center"
+            className="mt-3 sm:mt-4 md:mt-5 text-center"
             variants={staggerItem}
           >
             <p className="text-sm sm:text-sm text-gray-600 dark:text-gray-400">
