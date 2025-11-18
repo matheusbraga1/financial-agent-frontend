@@ -148,24 +148,24 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated, onFi
   return (
     <div className="flex flex-col h-full min-h-screen bg-gradient-to-br from-primary-50 via-white to-primary-50 dark:from-dark-bg dark:via-dark-card dark:to-dark-bg relative">
       {isEmpty ? (
-        /* Layout Centralizado - Claude Style */
+        /* Layout Centralizado - Claude Style: Logo + Título + Input juntos no centro */
         <div className="flex flex-col h-full min-h-screen animate-fade-in">
-          {/* Container flex com espaçamento adequado */}
-          <div className="flex-1 flex flex-col items-center justify-center px-3 sm:px-4 md:px-6 py-4 sm:py-6 overflow-y-auto">
-            <div className="w-full max-w-3xl mx-auto space-y-6 sm:space-y-8">
-              {/* EmptyState Centralizado - Estilo Claude Minimalista */}
-              <EmptyState onSuggestionClick={sendMessage} />
-            </div>
-          </div>
+          {/* Tudo centralizado verticalmente */}
+          <div className="flex-1 flex items-center justify-center px-4 sm:px-6 py-8 overflow-y-auto">
+            <div className="flex flex-col items-center w-full max-w-2xl space-y-8 sm:space-y-10">
+              {/* Logo + Título */}
+              <EmptyState />
 
-          {/* Input Fixo no Bottom com Safe Area */}
-          <div className="flex-shrink-0 bg-gradient-to-t from-primary-50 dark:from-dark-bg to-transparent px-3 sm:px-4 md:px-6 py-3 sm:py-4 pb-safe">
-            <ChatInput
-              onSendMessage={sendMessage}
-              onStopGeneration={stopGeneration}
-              isLoading={isLoading}
-              isStreaming={isStreaming}
-            />
+              {/* Input centralizado */}
+              <div className="w-full">
+                <ChatInput
+                  onSendMessage={sendMessage}
+                  onStopGeneration={stopGeneration}
+                  isLoading={isLoading}
+                  isStreaming={isStreaming}
+                />
+              </div>
+            </div>
           </div>
         </div>
       ) : (
