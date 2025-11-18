@@ -196,13 +196,13 @@ const Register = () => {
                     w-full px-3 sm:px-4 py-2.5 sm:py-3 md:py-2.5 rounded-lg border text-base sm:text-base
                     ${
                       errors.username
-                        ? 'border-red-500 focus:ring-red-500'
-                        : 'border-gray-300 dark:border-dark-border focus:ring-primary-500 dark:focus:ring-primary-600'
+                        ? 'border-red-500'
+                        : 'border-gray-300 dark:border-dark-border'
                     }
                     bg-white/50 dark:bg-dark-bg/50
                     hover:bg-white/70 dark:hover:bg-dark-bg/70
                     text-gray-900 dark:text-white
-                    focus:outline-none focus:ring-2
+                    focus:outline-none
                     transition-all duration-200
                     backdrop-blur-sm
                   `}
@@ -267,13 +267,13 @@ const Register = () => {
                     w-full px-3 sm:px-4 py-2.5 sm:py-3 md:py-2.5 rounded-lg border text-base sm:text-base
                     ${
                       errors.email
-                        ? 'border-red-500 focus:ring-red-500'
-                        : 'border-gray-300 dark:border-dark-border focus:ring-primary-500 dark:focus:ring-primary-600'
+                        ? 'border-red-500'
+                        : 'border-gray-300 dark:border-dark-border'
                     }
                     bg-white/50 dark:bg-dark-bg/50
                     hover:bg-white/70 dark:hover:bg-dark-bg/70
                     text-gray-900 dark:text-white
-                    focus:outline-none focus:ring-2
+                    focus:outline-none
                     transition-all duration-200
                     backdrop-blur-sm
                   `}
@@ -330,13 +330,13 @@ const Register = () => {
                     w-full px-3 sm:px-4 py-2.5 sm:py-3 md:py-2.5 rounded-lg border text-base sm:text-base
                     ${
                       errors.password
-                        ? 'border-red-500 focus:ring-red-500'
-                        : 'border-gray-300 dark:border-dark-border focus:ring-primary-500 dark:focus:ring-primary-600'
+                        ? 'border-red-500'
+                        : 'border-gray-300 dark:border-dark-border'
                     }
                     bg-white/50 dark:bg-dark-bg/50
                     hover:bg-white/70 dark:hover:bg-dark-bg/70
                     text-gray-900 dark:text-white
-                    focus:outline-none focus:ring-2
+                    focus:outline-none
                     transition-all duration-200
                     pr-11 sm:pr-12
                     backdrop-blur-sm
@@ -434,13 +434,13 @@ const Register = () => {
                     w-full px-3 sm:px-4 py-2.5 sm:py-3 md:py-2.5 rounded-lg border text-base sm:text-base
                     ${
                       errors.confirmPassword
-                        ? 'border-red-500 focus:ring-red-500'
-                        : 'border-gray-300 dark:border-dark-border focus:ring-primary-500 dark:focus:ring-primary-600'
+                        ? 'border-red-500'
+                        : 'border-gray-300 dark:border-dark-border'
                     }
                     bg-white/50 dark:bg-dark-bg/50
                     hover:bg-white/70 dark:hover:bg-dark-bg/70
                     text-gray-900 dark:text-white
-                    focus:outline-none focus:ring-2
+                    focus:outline-none
                     transition-all duration-200
                     pr-11 sm:pr-12
                     backdrop-blur-sm
