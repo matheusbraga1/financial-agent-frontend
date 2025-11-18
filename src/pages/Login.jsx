@@ -69,7 +69,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gray-50 dark:bg-dark-bg px-3 py-4 sm:px-4 sm:py-6 md:py-6">
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gray-50 dark:bg-dark-bg px-3 py-4 sm:px-4 sm:py-6 md:py-3">
       {/* Background mesh gradient animado */}
       <div className="fixed inset-0 bg-gradient-mesh dark:bg-gradient-mesh-dark opacity-60 sm:opacity-100" />
 
@@ -103,7 +103,7 @@ const Login = () => {
 
       {/* Container principal - Otimizado para mobile */}
       <motion.div
-        className="max-w-md w-full space-y-3 sm:space-y-4 md:space-y-4 relative z-10"
+        className="max-w-md w-full space-y-3 sm:space-y-4 md:space-y-3 relative z-10"
         variants={staggerContainer}
         initial="initial"
         animate="animate"
@@ -111,7 +111,7 @@ const Login = () => {
         {/* Logo e título - Mobile-first */}
         <motion.div className="text-center" variants={staggerItem}>
           <motion.div
-            className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-xl md:rounded-2xl bg-gradient-to-br from-primary-100 to-primary-50 dark:from-primary-900/40 dark:to-primary-800/20 mb-2 sm:mb-3 md:mb-3 ring-4 ring-primary-100/50 dark:ring-primary-900/30 p-2 sm:p-2.5 md:p-3 shadow-lg"
+            className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-gradient-to-br from-primary-100 to-primary-50 dark:from-primary-900/40 dark:to-primary-800/20 mb-2 sm:mb-3 md:mb-2 ring-4 ring-primary-100/50 dark:ring-primary-900/30 p-2 sm:p-2.5 md:p-3 shadow-lg"
             variants={logoEntrance}
           >
             <img
@@ -144,7 +144,7 @@ const Login = () => {
             rounded-xl sm:rounded-2xl
             shadow-2xl shadow-black/10 dark:shadow-black/30
             border border-white/20 dark:border-white/10
-            p-4 sm:p-6 md:p-8
+            p-4 sm:p-6 md:p-6
             relative
             overflow-hidden
           "
@@ -155,7 +155,7 @@ const Login = () => {
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full animate-shimmer" />
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-3.5 sm:space-y-4 md:space-y-4 relative">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-3.5 sm:space-y-4 md:space-y-3 relative">
             {/* Username - Mobile optimized */}
             <motion.div variants={staggerItem}>
               <label
@@ -377,7 +377,7 @@ const Login = () => {
 
           {/* Link para registro - Touch-friendly */}
           <motion.div
-            className="mt-3 sm:mt-4 md:mt-4 text-center"
+            className="mt-3 sm:mt-4 md:mt-3 text-center"
             variants={staggerItem}
           >
             <p className="text-sm sm:text-sm text-gray-600 dark:text-gray-400">
