@@ -12,6 +12,8 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Chat from './pages/Chat';
 import Documents from './pages/Documents';
+import Settings from './pages/Settings';
+import AdminPanel from './pages/AdminPanel';
 
 // Component interno para usar useLocation dentro do Router
 function AnimatedRoutes() {
@@ -93,6 +95,26 @@ function AnimatedRoutes() {
           {/* Chat público - funciona com ou sem autenticação */}
           {/* Conversas são persistidas apenas para usuários autenticados */}
           <Route path="/chat" element={<Chat />} />
+
+          {/* Rota de configurações (requer autenticação) */}
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <Settings />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Rota de painel admin (requer autenticação e admin) */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                <AdminPanel />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Rota 404 - Redireciona para chat */}
           <Route path="*" element={<Navigate to="/chat" replace />} />

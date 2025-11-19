@@ -1,9 +1,11 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import authService from '../services/api/authService';
+import { extractData, isApiResponse } from '../adapters';
 import { toast } from 'sonner';
 
 /**
  * Context de autenticação
+ * ✅ ATUALIZADO: Agora usa apiResponseAdapter para lidar com ApiResponse wrappers
  */
 const AuthContext = createContext(null);
 
@@ -40,8 +42,15 @@ export const AuthProvider = ({ children }) => {
         try {
           // Tenta buscar os dados do usuário com o token armazenado
           const response = await authService.getCurrentUser();
-          // Backend retorna { user: {...}, message: "..." }
-          const userData = response.user || response;
+
+          // ✅ CORREÇÃO: Backend retorna ApiResponse[MeResponse]
+          // MeResponse = { user: UserResponse, message: string }
+          const meResponse = isApiResponse(response)
+            ? extractData(response)
+            : response;
+
+          // Acessa user dentro de MeResponse
+          const userData = meResponse.user || meResponse;
           setUser(userData);
           setToken(storedToken);
 
@@ -83,8 +92,13 @@ export const AuthProvider = ({ children }) => {
 
       // Busca os dados do usuário
       const userResponse = await authService.getCurrentUser();
-      // Backend retorna { user: {...}, message: "..." }
-      const userData = userResponse.user || userResponse;
+
+      // ✅ CORREÇÃO: Extrai dados do wrapper ApiResponse
+      const meResponse = isApiResponse(userResponse)
+        ? extractData(userResponse)
+        : userResponse;
+
+      const userData = meResponse.user || meResponse;
       setUser(userData);
 
       toast.success(`Bem-vindo, ${userData.username || userData.email}!`);
@@ -103,11 +117,15 @@ export const AuthProvider = ({ children }) => {
   const register = useCallback(async (username, email, password) => {
     setLoading(true);
     try {
-      // Registra o usuário
-      await authService.register(username, email, password);
+      // ✅ CORREÇÃO: Backend retorna ApiResponse[UserResponse]
+      const response = await authService.register(username, email, password);
 
-      // Faz login automaticamente após o registro
-      // O toast de boas-vindas será exibido pelo login
+      // Extrai dados do wrapper se necessário
+      const registerData = isApiResponse(response)
+        ? extractData(response)
+        : response;
+
+      // Após registro bem-sucedido, faz login automaticamente
       const loginResult = await login(username, password);
 
       return loginResult;
@@ -124,17 +142,16 @@ export const AuthProvider = ({ children }) => {
   const logout = useCallback(async () => {
     setLoading(true);
     try {
-      // Chama o endpoint de logout (revoga o refresh token)
-      const currentRefreshToken = authService.getStoredRefreshToken();
-      if (currentRefreshToken) {
-        await authService.logout(currentRefreshToken);
-      }
+      // ✅ CORREÇÃO: Backend não espera body, usa Authorization header
+      await authService.logout();
 
       // Limpa o estado local
       authService.removeTokens();
       setToken(null);
       setRefreshToken(null);
       setUser(null);
+
+      toast.success('Logout realizado com sucesso');
     } catch (error) {
       // Mesmo se falhar, limpa o estado local
       authService.removeTokens();
@@ -155,8 +172,13 @@ export const AuthProvider = ({ children }) => {
 
     try {
       const response = await authService.getCurrentUser();
-      // Backend retorna { user: {...}, message: "..." }
-      const userData = response.user || response;
+
+      // ✅ CORREÇÃO: Extrai dados do wrapper ApiResponse
+      const meResponse = isApiResponse(response)
+        ? extractData(response)
+        : response;
+
+      const userData = meResponse.user || meResponse;
       setUser(userData);
     } catch (error) {
       console.error('Erro ao atualizar dados do usuário:', error);
