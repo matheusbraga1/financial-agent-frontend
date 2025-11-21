@@ -46,15 +46,14 @@ const authService = {
   },
 
   /**
-   * Faz logout do usuário (revoga o refresh token)
-   * @param {string} refreshToken - Refresh token para revogar
-   * @returns {Promise<{message: string}>}
+   * Faz logout do usuário (revoga access token via blacklist)
+   * ✅ CORRIGIDO: Backend não espera body, usa Authorization header
+   * @returns {Promise<{success: boolean, data: {message: string}, message: string}>}
    */
-  async logout(refreshToken) {
+  async logout() {
     try {
-      const response = await api.post('/auth/logout', {
-        refresh_token: refreshToken,
-      });
+      // Backend pega o token do Authorization header e revoga
+      const response = await api.post('/auth/logout');
       return response.data;
     } catch (error) {
       // Mesmo se falhar, vamos limpar o token localmente
