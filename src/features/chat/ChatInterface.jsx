@@ -24,6 +24,7 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated, onFi
     isLoading,
     isStreaming,
     isLoadingHistory,
+    isNewSession,
     error,
     sendMessage,
     stopGeneration,
@@ -68,11 +69,13 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated, onFi
   }, [onFirstMessage]);
 
   /**
-   * Notifica sobre primeira mensagem do usuário em nova sessão
+   * Notifica sobre primeira mensagem do usuário APENAS em sessões novas
+   * Não dispara quando carrega histórico existente
    * Usado para adicionar conversa ao histórico com efeito de digitação
    */
   useEffect(() => {
-    if (!currentSessionId || !messages.length) return;
+    // IMPORTANTE: Só notifica se for sessão nova (não carregada do histórico)
+    if (!isNewSession || !currentSessionId || !messages.length) return;
 
     // Evita notificar múltiplas vezes para mesma sessão
     if (hasNotifiedFirstMessageRef.current.has(currentSessionId)) {
@@ -89,7 +92,7 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated, onFi
       // Notifica o componente pai
       onFirstMessageRef.current?.(currentSessionId, firstUserMessage.content);
     }
-  }, [messages, currentSessionId]);
+  }, [messages, currentSessionId, isNewSession]);
 
   /**
    * Notifica componente pai quando session_id muda

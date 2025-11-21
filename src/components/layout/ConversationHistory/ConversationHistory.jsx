@@ -41,10 +41,6 @@ const ConversationHistory = ({
   // Ref para rastrear sessões já adicionadas (evitar duplicatas)
   const addedSessionIdsRef = useRef(new Set());
 
-  useEffect(() => {
-    loadSessions();
-  }, [loadSessions]);
-
   /**
    * Carrega todas as sessões do backend
    * Marca todas como já adicionadas para evitar duplicatas
@@ -73,6 +69,10 @@ const ConversationHistory = ({
       setIsLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    loadSessions();
+  }, [loadSessions]);
 
   /**
    * Adiciona nova sessão ao topo da lista com efeito de digitação
@@ -217,6 +217,9 @@ const ConversationHistory = ({
     );
   }
 
+  // Normaliza currentSessionId uma vez para evitar cálculos repetidos
+  const normalizedCurrentId = currentSessionId ? String(currentSessionId) : null;
+
   // Sessions list premium - usando ConversationItem
   return (
     <>
@@ -224,10 +227,10 @@ const ConversationHistory = ({
         {sessions.map((session) => {
           // Normaliza IDs para string para garantir comparação consistente
           const sessionId = String(session.session_id || '');
-          const isActive = currentSessionId && sessionId === String(currentSessionId);
-          const isDeleting = deletingSessionId && sessionId === String(deletingSessionId);
-          const isHovered = hoveredSessionId && sessionId === String(hoveredSessionId);
-          const enableTyping = newlyAddedSessionId && sessionId === String(newlyAddedSessionId);
+          const isActive = normalizedCurrentId !== null && sessionId === normalizedCurrentId;
+          const isDeleting = deletingSessionId ? sessionId === String(deletingSessionId) : false;
+          const isHovered = hoveredSessionId ? sessionId === String(hoveredSessionId) : false;
+          const enableTyping = newlyAddedSessionId ? sessionId === String(newlyAddedSessionId) : false;
           // Obtém título customizado do localStorage (usa customTitlesVersion para reatividade)
           const customTitle = customTitlesVersion >= 0 ? getCustomTitle(sessionId) : null;
 

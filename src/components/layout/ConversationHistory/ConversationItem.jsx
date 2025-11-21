@@ -14,7 +14,7 @@ import { useTypingEffectWithTruncate } from '../../../hooks';
  *
  * @component
  */
-const ConversationItem = memo(({
+const ConversationItemBase = ({
   session,
   customTitle,
   isActive,
@@ -313,6 +313,20 @@ const ConversationItem = memo(({
       )}
     </button>
   );
+};
+
+// Memo com comparação customizada para garantir re-render quando isActive muda
+const ConversationItem = memo(ConversationItemBase, (prevProps, nextProps) => {
+  // Retorna false para forçar re-render quando estas props mudam
+  if (prevProps.isActive !== nextProps.isActive) return false;
+  if (prevProps.isDeleting !== nextProps.isDeleting) return false;
+  if (prevProps.isHovered !== nextProps.isHovered) return false;
+  if (prevProps.enableTyping !== nextProps.enableTyping) return false;
+  if (prevProps.customTitle !== nextProps.customTitle) return false;
+  if (prevProps.session?.session_id !== nextProps.session?.session_id) return false;
+  if (prevProps.session?.last_message !== nextProps.session?.last_message) return false;
+  // Para outras props, considera iguais (evita re-render por callbacks)
+  return true;
 });
 
 ConversationItem.displayName = 'ConversationItem';

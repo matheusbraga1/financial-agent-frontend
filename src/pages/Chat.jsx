@@ -29,12 +29,15 @@ const Chat = () => {
   const isUpdatingSessionRef = useRef(false);
   // Ref para rastrear primeira mensagem da sessão
   const sessionFirstMessageRef = useRef({});
+  // Ref para rastrear o sessionId atual e bloquear re-seleção
+  const currentSessionIdRef = useRef(currentSessionId);
 
   /**
    * Handler: Nova conversa
    * Limpa sessão atual e força recriação do chat
    */
   const handleNewConversation = useCallback(() => {
+    currentSessionIdRef.current = null;
     setCurrentSessionId(null);
     setForceNewConversation(true);
     // Usa setTimeout em vez de requestAnimationFrame para melhor previsibilidade
@@ -45,27 +48,48 @@ const Chat = () => {
 
   /**
    * Handler: Selecionar sessão existente
+   * Evita re-seleção da mesma sessão para prevenir estados inconsistentes
+   * Usa ref para bloquear completamente antes de chamar setState
    */
   const handleSelectSession = useCallback((sessionId) => {
-    setCurrentSessionId(sessionId);
+    // Normaliza para string para garantir comparação consistente
+    const normalizedId = sessionId ? String(sessionId) : null;
+    const normalizedCurrentId = currentSessionIdRef.current ? String(currentSessionIdRef.current) : null;
+
+    // IMPORTANTE: Bloqueia completamente se for a mesma sessão
+    // Não chama setState para evitar qualquer possibilidade de re-render
+    if (normalizedCurrentId === normalizedId) {
+      return;
+    }
+
+    // Atualiza ref imediatamente
+    currentSessionIdRef.current = normalizedId;
+    // Atualiza state
+    setCurrentSessionId(normalizedId);
   }, []);
 
   /**
    * Handler: Sessão criada pelo backend
    * Usa ref para evitar loops ao atualizar o estado
+   * Normaliza IDs para string para garantir comparação consistente
    */
   const handleSessionCreated = useCallback((sessionId) => {
     // Evita loops verificando se já está atualizando
     if (isUpdatingSessionRef.current) return;
 
+    // Normaliza para string
+    const normalizedId = sessionId ? String(sessionId) : null;
+    const normalizedCurrentId = currentSessionIdRef.current ? String(currentSessionIdRef.current) : null;
+
+    // Só atualiza se realmente mudou
+    if (!normalizedId || normalizedId === normalizedCurrentId) {
+      return;
+    }
+
     isUpdatingSessionRef.current = true;
-    setCurrentSessionId(prevSessionId => {
-      // Só atualiza se realmente mudou
-      if (sessionId && sessionId !== prevSessionId) {
-        return sessionId;
-      }
-      return prevSessionId;
-    });
+    // Atualiza ref imediatamente
+    currentSessionIdRef.current = normalizedId;
+    setCurrentSessionId(normalizedId);
 
     // Libera flag após atualização
     setTimeout(() => {
@@ -77,23 +101,29 @@ const Chat = () => {
    * Handler: Captura primeira mensagem de nova sessão
    * Notifica sidebar para adicionar ao histórico com efeito de digitação
    * E SELECIONA a nova sessão automaticamente para manter consistência visual
+   * Normaliza IDs para string para garantir comparação consistente
    */
   const handleFirstMessage = useCallback((sessionId, message) => {
+    // Normaliza para string
+    const normalizedId = sessionId ? String(sessionId) : null;
+    if (!normalizedId) return;
+
     // Só processa se ainda não foi registrada
-    if (sessionFirstMessageRef.current[sessionId]) {
+    if (sessionFirstMessageRef.current[normalizedId]) {
       return;
     }
 
     // Marca como processada
-    sessionFirstMessageRef.current[sessionId] = message;
+    sessionFirstMessageRef.current[normalizedId] = message;
 
     // IMPORTANTE: Atualiza currentSessionId para selecionar a nova sessão
     // Isso garante que o item fique "ativo" no sidebar imediatamente
-    setCurrentSessionId(sessionId);
+    currentSessionIdRef.current = normalizedId;
+    setCurrentSessionId(normalizedId);
 
     // Cria objeto para o sidebar adicionar ao histórico
     setNewSessionData({
-      sessionId,
+      sessionId: normalizedId,
       firstMessage: message,
     });
 

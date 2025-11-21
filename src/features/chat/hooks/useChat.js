@@ -18,85 +18,158 @@ export const useChat = (useStreaming = true, initialSessionId = null) => {
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState(null);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  // Estado para sessionId - dispara re-render quando backend retorna novo ID
+  const [currentSessionId, setCurrentSessionId] = useState(initialSessionId || generateId());
+  // Flag para indicar se é uma sessão nova (não carregada do histórico)
+  const [isNewSession, setIsNewSession] = useState(!initialSessionId);
 
   const { isAuthenticated } = useAuth();
-  const sessionIdRef = useRef(initialSessionId || generateId());
+  const sessionIdRef = useRef(currentSessionId);
   const abortControllerRef = useRef(null);
 
   // Ref para rastrear a última sessão carregada e evitar carregamentos duplicados
   const previousSessionIdRef = useRef(null);
   const isLoadingRef = useRef(false);
+  // Ref para abort controller do carregamento de histórico
+  const historyAbortControllerRef = useRef(null);
+
+  // Mantém ref sincronizado com state
+  useEffect(() => {
+    sessionIdRef.current = currentSessionId;
+  }, [currentSessionId]);
 
   /**
-   * Carrega histórico de mensagens ao montar o componente
-   * Apenas se usuário estiver autenticado e houver sessionId válido
-   *
-   * FIX: Limpa mensagens imediatamente ao trocar de sessão para evitar flickering
-   * FIX: Usa ref para evitar carregamentos duplicados
+   * Carrega histórico de mensagens quando initialSessionId muda
+   * - Sincroniza currentSessionId com initialSessionId
+   * - Usa abort controller para cancelar requests obsoletos
+   * - Carrega do backend apenas se necessário
    */
   useEffect(() => {
+    // Normaliza IDs para comparação consistente
+    const normalizedInitialId = initialSessionId ? String(initialSessionId) : null;
+    const normalizedCurrentId = currentSessionId ? String(currentSessionId) : null;
+    const normalizedPreviousId = previousSessionIdRef.current ? String(previousSessionIdRef.current) : null;
+
+    // Se não tem initialSessionId, é uma nova conversa
+    if (!normalizedInitialId) {
+      // Cancela qualquer carregamento em andamento
+      historyAbortControllerRef.current?.abort();
+
+      // Só gera novo ID se:
+      // 1. Não temos currentSessionId OU
+      // 2. previousSessionIdRef.current é diferente de currentSessionId (indica reset)
+      // IMPORTANTE: Não resetar se currentSessionId já existe e é diferente do previous
+      // (isso evita o bug de clicar duas vezes na mesma conversa)
+      const needsReset = !normalizedCurrentId ||
+        (normalizedPreviousId !== null && normalizedPreviousId !== normalizedCurrentId);
+
+      if (needsReset) {
+        const newId = generateId();
+        setCurrentSessionId(newId);
+        setMessages([]);
+        setIsNewSession(true); // Nova conversa
+        previousSessionIdRef.current = null;
+      }
+      return;
+    }
+
+    // Sincroniza currentSessionId com initialSessionId
+    if (normalizedCurrentId !== normalizedInitialId) {
+      setCurrentSessionId(normalizedInitialId);
+    }
+
+    // IMPORTANTE: Se é a mesma sessão que já está carregada, não faz nada
+    // Isso evita o bug de clicar duas vezes na mesma conversa
+    if (normalizedPreviousId === normalizedInitialId) {
+      return;
+    }
+
+    // Não carrega se não autenticado
+    if (!isAuthenticated) {
+      return;
+    }
+
+    // Cancela qualquer carregamento anterior antes de iniciar novo
+    historyAbortControllerRef.current?.abort();
+
+    // Cria novo abort controller para esta operação
+    const abortController = new AbortController();
+    historyAbortControllerRef.current = abortController;
+
+    // Marca como sessão carregada do histórico (não nova)
+    setIsNewSession(false);
+
+    // Marca imediatamente como carregando esta sessão para bloquear chamadas duplicadas
+    previousSessionIdRef.current = normalizedInitialId;
+    isLoadingRef.current = true;
+
     const loadHistory = async () => {
-      // Não carrega se não está autenticado ou não tem sessionId
-      if (!isAuthenticated || !initialSessionId) {
-        // Se não tem sessionId, limpa mensagens e histórico
-        if (!initialSessionId && messages.length === 0) {
-          previousSessionIdRef.current = null;
-        }
+      // Verifica se já foi cancelado antes de limpar mensagens
+      if (abortController.signal.aborted) {
         return;
       }
 
-      // Evita carregamento duplicado da mesma sessão
-      if (previousSessionIdRef.current === initialSessionId || isLoadingRef.current) {
-        return;
-      }
-
-      // Marca que está carregando
-      isLoadingRef.current = true;
-      previousSessionIdRef.current = initialSessionId;
-
-      // FIX: Limpa mensagens antigas IMEDIATAMENTE ao trocar de sessão
-      // Isso previne flickering e exibição de conteúdo errado
       setMessages([]);
       setIsLoadingHistory(true);
       setError(null);
-
-      // FIX: Atualiza sessionIdRef para a sessão sendo carregada
-      sessionIdRef.current = initialSessionId;
+      sessionIdRef.current = normalizedInitialId;
 
       try {
-        // chatService.getChatHistory já retorna dados adaptados
-        const history = await chatService.getChatHistory(initialSessionId);
+        const history = await chatService.getChatHistory(normalizedInitialId);
 
-        // Só atualiza se realmente há mensagens E ainda é a sessão atual
+        // Verifica se foi cancelado durante o fetch
+        if (abortController.signal.aborted) {
+          return;
+        }
+
         const loadedMessages = history.messages || [];
-        if (loadedMessages.length > 0 && previousSessionIdRef.current === initialSessionId) {
+
+        // Verifica se ainda é a sessão atual antes de atualizar
+        if (previousSessionIdRef.current === normalizedInitialId) {
           setMessages(loadedMessages);
         }
       } catch (error) {
-        // Log silencioso para debug
+        // Ignora erros de abort
+        if (error?.name === 'AbortError' || abortController.signal.aborted) {
+          return;
+        }
+
         console.debug('Histórico não carregado:', error?.message);
 
-        // Apenas mostra erro para problemas de permissão
         if (error?.message?.includes('403') || error?.message?.includes('permissão')) {
           setError('Esta conversa não pode ser acessada.');
-          setMessages([]);
         }
-        // 404 e outros erros são silenciosos (normal para novas conversas)
+        // 404 e outros erros são silenciosos (sessão nova ou inexistente)
       } finally {
-        setIsLoadingHistory(false);
-        isLoadingRef.current = false;
+        // Só atualiza flags se não foi cancelado
+        if (!abortController.signal.aborted) {
+          setIsLoadingHistory(false);
+          isLoadingRef.current = false;
+        }
       }
     };
 
     loadHistory();
+
+    // Cleanup: cancela request quando effect re-executa ou componente desmonta
+    return () => {
+      abortController.abort();
+      // IMPORTANTE: Reset refs se ainda apontam para esta sessão
+      // Isso permite que re-execuções do effect (React Strict Mode) carreguem corretamente
+      if (previousSessionIdRef.current === normalizedInitialId) {
+        previousSessionIdRef.current = null;
+        isLoadingRef.current = false;
+      }
+    };
   }, [isAuthenticated, initialSessionId]);
 
   /**
-   * Cleanup - cancela requisições pendentes
+   * Cleanup - cancela requisições pendentes (mensagens e histórico)
    */
   useEffect(() => {
     return () => {
       abortControllerRef.current?.abort();
+      historyAbortControllerRef.current?.abort();
     };
   }, []);
 
@@ -258,8 +331,13 @@ export const useChat = (useStreaming = true, initialSessionId = null) => {
       },
       () => {
         // Atualiza session_id com o retornado pelo backend (para sincronizar)
+        // Usa setState para disparar re-render e notificar componente pai
+        // Normaliza para string para garantir comparação consistente
         if (backendSessionId) {
-          sessionIdRef.current = backendSessionId;
+          const normalizedBackendId = String(backendSessionId);
+          setCurrentSessionId(normalizedBackendId);
+          // Marca como já processada para evitar reload quando parent sincronizar
+          previousSessionIdRef.current = normalizedBackendId;
         }
 
         // Garante que conteúdo final está salvo
@@ -286,8 +364,12 @@ export const useChat = (useStreaming = true, initialSessionId = null) => {
     );
 
     // Atualiza session_id com o retornado pelo backend
+    // Normaliza para string para garantir comparação consistente
     if (response.sessionId) {
-      sessionIdRef.current = response.sessionId;
+      const normalizedBackendId = String(response.sessionId);
+      setCurrentSessionId(normalizedBackendId);
+      // Marca como já processada para evitar reload quando parent sincronizar
+      previousSessionIdRef.current = normalizedBackendId;
     }
 
     updateMessage(assistantId, {
@@ -306,9 +388,11 @@ export const useChat = (useStreaming = true, initialSessionId = null) => {
     setMessages([]);
     setError(null);
     setIsLoading(false);
-    
+    setIsNewSession(true); // Nova conversa
+
     // Gera novo session_id para nova conversa
-    sessionIdRef.current = generateId();
+    const newSessionId = generateId();
+    setCurrentSessionId(newSessionId);
   }, []);
 
   /**
@@ -344,8 +428,9 @@ export const useChat = (useStreaming = true, initialSessionId = null) => {
     isLoading,
     isStreaming,
     isLoadingHistory,
+    isNewSession, // Flag para indicar se é sessão nova (não carregada)
     error,
-    sessionId: sessionIdRef.current,
+    sessionId: currentSessionId,
 
     // Métodos
     sendMessage,
