@@ -27,7 +27,7 @@
  * @property {string} session_id - ID da sessão
  * @property {string} created_at - ISO 8601 timestamp
  * @property {number} message_count - Quantidade de mensagens
- * @property {string} last_message - Última mensagem da conversa
+ * @property {string|null} last_message - Última mensagem da conversa (pode ser null)
  * @property {string} [user_id] - ID do usuário (opcional)
  */
 
@@ -56,18 +56,16 @@
  * @typedef {Object} FeedbackPayload
  * @property {string} session_id - ID da sessão
  * @property {string} message_id - ID da mensagem
- * @property {'positive'|'negative'|'neutral'} rating - Avaliação
+ * @property {'positivo'|'negativo'} rating - Avaliação
  * @property {string} [comment] - Comentário opcional
  */
 
 /**
  * Tipos de rating aceitos pelo backend
- * @see manage_conversation_use_case._is_helpful_rating()
  */
 export const RATING_TYPES = {
-  POSITIVE: 'positive',
-  NEGATIVE: 'negative',
-  NEUTRAL: 'neutral',
+  POSITIVE: 'positivo',
+  NEGATIVE: 'negativo',
 };
 
 /**
@@ -110,38 +108,51 @@ export const validators = {
 
   /**
    * Valida estrutura de mensagem do backend
+   * CORRIGIDO: Validação mais flexível
    * @param {any} msg
    * @returns {boolean}
    */
   isValidBackendMessage(msg) {
-    return (
-      msg &&
-      typeof msg === 'object' &&
-      typeof msg.message_id !== 'undefined' &&
-      typeof msg.role === 'string' &&
-      typeof msg.timestamp === 'string' &&
-      this.isValidBackendRole(msg.role)
-    );
+    if (!msg || typeof msg !== 'object') return false;
+    if (typeof msg.role !== 'string') return false;
+    if (!this.isValidBackendRole(msg.role)) return false;
+    
+    // message_id pode ser string ou number
+    if (msg.message_id === undefined || msg.message_id === null) return false;
+    
+    return true;
   },
 
   /**
    * Valida estrutura de sessão do backend
-   * Backend retorna: { session_id, created_at, message_count, last_message }
-   * last_message pode ser null/undefined para sessões novas
+   * CORRIGIDO: last_message agora é opcional (pode ser null)
    * @param {any} session
    * @returns {boolean}
    */
   isValidBackendSession(session) {
-    return (
-      session &&
-      typeof session === 'object' &&
-      typeof session.session_id === 'string' &&
-      typeof session.created_at === 'string' &&
-      typeof session.message_count === 'number' &&
-      // last_message é opcional - pode ser null/undefined para sessões novas
-      (session.last_message === undefined ||
-        session.last_message === null ||
-        typeof session.last_message === 'string')
-    );
+    if (!session || typeof session !== 'object') return false;
+    if (typeof session.session_id !== 'string') return false;
+    
+    // created_at deve existir, mas pode ser validado de forma flexível
+    if (!session.created_at) return false;
+    
+    // message_count deve ser número (pode ser 0)
+    if (typeof session.message_count !== 'number') return false;
+    
+    // last_message é opcional - pode ser null, undefined ou string
+    // Removida a validação obrigatória de last_message
+    
+    return true;
+  },
+
+  /**
+   * Valida se é um timestamp válido
+   * @param {string} timestamp
+   * @returns {boolean}
+   */
+  isValidTimestamp(timestamp) {
+    if (!timestamp || typeof timestamp !== 'string') return false;
+    const date = new Date(timestamp);
+    return !isNaN(date.getTime());
   },
 };

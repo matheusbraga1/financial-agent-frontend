@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { Info, X, LogIn, UserPlus } from 'lucide-react';
 import Sidebar from '../components/layout/Sidebar/Sidebar';
 import MobileHeader from '../components/layout/MobileHeader/MobileHeader';
@@ -7,145 +7,112 @@ import ChatInterface from '../features/chat/ChatInterface';
 import { useAuth } from '../contexts/AuthContext';
 
 /**
- * Página de Chat - Layout Atualizado
- * - Sidebar integrado com navegação
- * - Sem navbar redundante
- * - Design limpo e responsivo
+ * Página de Chat - Com Rotas Dinâmicas
+ * 
+ * Rotas:
+ * - /chat           → Nova conversa (empty state)
+ * - /chat/:sessionId → Conversa específica
+ * 
+ * Padrão inspirado no Claude/ChatGPT
  */
 const Chat = () => {
+  // Obtém sessionId da URL (undefined se /chat, string se /chat/:sessionId)
+  const { sessionId: urlSessionId } = useParams();
+  const navigate = useNavigate();
+  
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [currentSessionId, setCurrentSessionId] = useState(null);
-  const [forceNewConversation, setForceNewConversation] = useState(false);
   const [showGuestBanner, setShowGuestBanner] = useState(() => {
-    // Verifica se usuário já fechou o banner antes
     return localStorage.getItem('guestBannerDismissed') !== 'true';
   });
   const [newSessionData, setNewSessionData] = useState(null);
 
   const { isAuthenticated } = useAuth();
-  const location = useLocation();
 
-  // Ref para evitar loop infinito ao atualizar sessionId
-  const isUpdatingSessionRef = useRef(false);
-  // Ref para rastrear primeira mensagem da sessão
-  const sessionFirstMessageRef = useRef({});
-  // Ref para rastrear o sessionId atual e bloquear re-seleção
-  const currentSessionIdRef = useRef(currentSessionId);
+  // Ref para rastrear primeira mensagem da sessão (para typing effect no sidebar)
+  const sessionFirstMessageRef = useRef(new Map());
 
   /**
    * Handler: Nova conversa
-   * Limpa sessão atual e força recriação do chat
+   * Navega para /chat (sem sessionId)
    */
   const handleNewConversation = useCallback(() => {
-    currentSessionIdRef.current = null;
-    setCurrentSessionId(null);
-    setForceNewConversation(true);
-    // Usa setTimeout em vez de requestAnimationFrame para melhor previsibilidade
-    setTimeout(() => {
-      setForceNewConversation(false);
-    }, 0);
-  }, []);
+    // Limpa dados de nova sessão
+    setNewSessionData(null);
+    // Navega para /chat (nova conversa)
+    navigate('/chat');
+    // Fecha sidebar em mobile
+    setIsSidebarOpen(false);
+  }, [navigate]);
 
   /**
    * Handler: Selecionar sessão existente
-   * Evita re-seleção da mesma sessão para prevenir estados inconsistentes
-   * Usa ref para bloquear completamente antes de chamar setState
+   * Navega para /chat/:sessionId
    */
   const handleSelectSession = useCallback((sessionId) => {
-    // Normaliza para string para garantir comparação consistente
-    const normalizedId = sessionId ? String(sessionId) : null;
-    const normalizedCurrentId = currentSessionIdRef.current ? String(currentSessionIdRef.current) : null;
-
-    // IMPORTANTE: Bloqueia completamente se for a mesma sessão
-    // Não chama setState para evitar qualquer possibilidade de re-render
-    if (normalizedCurrentId === normalizedId) {
+    if (!sessionId) {
+      navigate('/chat');
       return;
     }
-
-    // Atualiza ref imediatamente
-    currentSessionIdRef.current = normalizedId;
-    // Atualiza state
-    setCurrentSessionId(normalizedId);
-  }, []);
+    // Navega para a conversa específica
+    navigate(`/chat/${sessionId}`);
+    // Fecha sidebar em mobile
+    setIsSidebarOpen(false);
+  }, [navigate]);
 
   /**
-   * Handler: Sessão criada pelo backend
-   * Usa ref para evitar loops ao atualizar o estado
-   * Normaliza IDs para string para garantir comparação consistente
+   * Handler: Sessão criada pelo backend (nova conversa iniciada)
+   * Atualiza a URL para refletir o novo sessionId
    */
   const handleSessionCreated = useCallback((sessionId) => {
-    // Evita loops verificando se já está atualizando
-    if (isUpdatingSessionRef.current) return;
-
-    // Normaliza para string
-    const normalizedId = sessionId ? String(sessionId) : null;
-    const normalizedCurrentId = currentSessionIdRef.current ? String(currentSessionIdRef.current) : null;
-
-    // Só atualiza se realmente mudou
-    if (!normalizedId || normalizedId === normalizedCurrentId) {
-      return;
+    if (!sessionId) return;
+    // Se ainda está em /chat (nova conversa), atualiza URL para /chat/:sessionId
+    // Usa replace para não poluir o histórico
+    if (!urlSessionId) {
+      navigate(`/chat/${sessionId}`, { replace: true });
     }
-
-    isUpdatingSessionRef.current = true;
-    // Atualiza ref imediatamente
-    currentSessionIdRef.current = normalizedId;
-    setCurrentSessionId(normalizedId);
-
-    // Libera flag após atualização
-    setTimeout(() => {
-      isUpdatingSessionRef.current = false;
-    }, 100);
-  }, []);
+  }, [navigate, urlSessionId]);
 
   /**
    * Handler: Captura primeira mensagem de nova sessão
    * Notifica sidebar para adicionar ao histórico com efeito de digitação
-   * E SELECIONA a nova sessão automaticamente para manter consistência visual
-   * Normaliza IDs para string para garantir comparação consistente
    */
   const handleFirstMessage = useCallback((sessionId, message) => {
-    // Normaliza para string
-    const normalizedId = sessionId ? String(sessionId) : null;
-    if (!normalizedId) return;
-
-    // Só processa se ainda não foi registrada
-    if (sessionFirstMessageRef.current[normalizedId]) {
+    if (!sessionId || !message) return;
+    
+    // Evita duplicatas
+    if (sessionFirstMessageRef.current.has(sessionId)) {
       return;
     }
 
-    // Marca como processada
-    sessionFirstMessageRef.current[normalizedId] = message;
+    // Registra
+    sessionFirstMessageRef.current.set(sessionId, message);
 
-    // IMPORTANTE: Atualiza currentSessionId para selecionar a nova sessão
-    // Isso garante que o item fique "ativo" no sidebar imediatamente
-    currentSessionIdRef.current = normalizedId;
-    setCurrentSessionId(normalizedId);
+    // Limpa sessões antigas (mantém últimas 50)
+    if (sessionFirstMessageRef.current.size > 50) {
+      const keys = Array.from(sessionFirstMessageRef.current.keys());
+      keys.slice(0, keys.length - 50).forEach(key => {
+        sessionFirstMessageRef.current.delete(key);
+      });
+    }
 
-    // Cria objeto para o sidebar adicionar ao histórico
-    setNewSessionData({
-      sessionId: normalizedId,
-      firstMessage: message,
-    });
+    // Notifica sidebar
+    setNewSessionData({ sessionId, firstMessage: message });
 
-    // Limpa após 3 segundos (tempo suficiente para o efeito de digitação)
-    setTimeout(() => {
-      setNewSessionData(null);
-    }, 3500);
+    // Limpa após animação
+    setTimeout(() => setNewSessionData(null), 3500);
   }, []);
 
+  /**
+   * Handler: Dismiss banner de visitante
+   */
   const handleDismissBanner = useCallback(() => {
     setShowGuestBanner(false);
     localStorage.setItem('guestBannerDismissed', 'true');
   }, []);
 
-  useEffect(() => {
-    if (location.state?.newConversation) {
-      handleNewConversation();
-      window.history.replaceState({}, document.title);
-    }
-  }, [location, handleNewConversation]);
-
-  // Reseta banner quando usuário faz login
+  /**
+   * Reset banner quando usuário faz login
+   */
   useEffect(() => {
     if (isAuthenticated) {
       localStorage.removeItem('guestBannerDismissed');
@@ -159,7 +126,7 @@ const Chat = () => {
       <Sidebar
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
-        currentSessionId={currentSessionId}
+        currentSessionId={urlSessionId || null}
         onSelectSession={handleSelectSession}
         onNewConversation={handleNewConversation}
         newSessionData={newSessionData}
@@ -167,23 +134,21 @@ const Chat = () => {
 
       {/* Conteúdo principal */}
       <div className="flex-1 flex flex-col h-full overflow-hidden">
-        {/* Header mobile apenas */}
+        {/* Header mobile */}
         <MobileHeader onToggleSidebar={() => setIsSidebarOpen(true)} />
 
-        {/* Banner para usuários não autenticados - Dismissível */}
+        {/* Banner para usuários não autenticados */}
         {!isAuthenticated && showGuestBanner && (
           <div className="relative animate-slide-down">
             <div className="bg-gradient-to-r from-blue-50 via-primary-50/30 to-blue-50 dark:from-blue-900/10 dark:via-primary-900/10 dark:to-blue-900/10 border-b border-blue-200/50 dark:border-blue-800/30 backdrop-blur-sm">
               <div className="max-w-7xl mx-auto px-4 py-3">
                 <div className="flex items-start gap-3">
-                  {/* Ícone */}
                   <div className="flex-shrink-0 mt-0.5">
                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-400 dark:to-blue-500 flex items-center justify-center shadow-sm">
                       <Info className="w-4 h-4 text-white" />
                     </div>
                   </div>
 
-                  {/* Conteúdo */}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
                       Modo visitante
@@ -192,7 +157,6 @@ const Chat = () => {
                       Você está explorando o chat como visitante. Para salvar suas conversas e acessá-las depois, faça login ou crie uma conta.
                     </p>
 
-                    {/* Botões de ação */}
                     <div className="flex flex-wrap items-center gap-2">
                       <Link
                         to="/login"
@@ -211,7 +175,6 @@ const Chat = () => {
                     </div>
                   </div>
 
-                  {/* Botão Fechar */}
                   <button
                     onClick={handleDismissBanner}
                     className="flex-shrink-0 p-1.5 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
@@ -226,10 +189,10 @@ const Chat = () => {
           </div>
         )}
 
-        {/* Interface de chat */}
+        {/* Interface de chat - key força remontagem quando sessionId muda */}
         <ChatInterface
-          sessionId={currentSessionId}
-          forceNewConversation={forceNewConversation}
+          key={urlSessionId || 'new-conversation'}
+          sessionId={urlSessionId || null}
           onSessionCreated={handleSessionCreated}
           onFirstMessage={handleFirstMessage}
         />

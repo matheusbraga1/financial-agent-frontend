@@ -15,13 +15,34 @@ import Documents from './pages/Documents';
 import Settings from './pages/Settings';
 import AdminPanel from './pages/AdminPanel';
 
-// Component interno para usar useLocation dentro do Router
+/**
+ * Extrai a rota base para usar como key no AnimatePresence
+ * Isso evita remontar toda a aplicação ao mudar de conversa
+ * 
+ * /chat e /chat/:sessionId → 'chat'
+ * /login → 'login'
+ * /dashboard → 'dashboard'
+ */
+const getRouteKey = (pathname) => {
+  // Remove leading slash e pega primeiro segmento
+  const segments = pathname.split('/').filter(Boolean);
+  return segments[0] || 'home';
+};
+
+/**
+ * Componente interno para rotas animadas
+ */
 function AnimatedRoutes() {
   const location = useLocation();
+  
+  // Usa rota base como key, não pathname completo
+  // Assim /chat e /chat/abc123 têm a mesma key ('chat')
+  // e não causam remontagem do componente Chat
+  const routeKey = getRouteKey(location.pathname);
 
   return (
     <>
-      {/* Toast notifications premium com glassmorphism */}
+      {/* Toast notifications */}
       <Toaster
         position="top-right"
         expand={false}
@@ -48,13 +69,13 @@ function AnimatedRoutes() {
         }}
       />
 
-      {/* Rotas animadas com AnimatePresence */}
+      {/* Rotas com animação apenas entre páginas diferentes */}
       <AnimatePresence mode="wait" initial={false}>
-        <Routes location={location} key={location.pathname}>
-          {/* Rota raiz - redireciona para chat (público) */}
+        <Routes location={location} key={routeKey}>
+          {/* Rota raiz */}
           <Route path="/" element={<Navigate to="/chat" replace />} />
 
-          {/* Rotas públicas (redireciona para dashboard se já autenticado) */}
+          {/* Rotas públicas */}
           <Route
             path="/login"
             element={
@@ -72,7 +93,7 @@ function AnimatedRoutes() {
             }
           />
 
-          {/* Rotas protegidas (requerem autenticação) */}
+          {/* Rotas protegidas */}
           <Route
             path="/dashboard"
             element={
@@ -82,7 +103,6 @@ function AnimatedRoutes() {
             }
           />
 
-          {/* Rota de documentos (admin apenas) */}
           <Route
             path="/documents"
             element={
@@ -92,11 +112,17 @@ function AnimatedRoutes() {
             }
           />
 
-          {/* Chat público - funciona com ou sem autenticação */}
-          {/* Conversas são persistidas apenas para usuários autenticados */}
+          {/* 
+            Chat Routes - Mesma key para ambas as rotas
+            /chat           → Nova conversa
+            /chat/:sessionId → Conversa específica
+            
+            O Chat.jsx internamente usa key no ChatInterface
+            para remontar apenas a interface quando sessionId muda
+          */}
           <Route path="/chat" element={<Chat />} />
+          <Route path="/chat/:sessionId" element={<Chat />} />
 
-          {/* Rota de configurações (requer autenticação) */}
           <Route
             path="/settings"
             element={
@@ -106,7 +132,6 @@ function AnimatedRoutes() {
             }
           />
 
-          {/* Rota de painel admin (requer autenticação e admin) */}
           <Route
             path="/admin"
             element={
@@ -116,7 +141,7 @@ function AnimatedRoutes() {
             }
           />
 
-          {/* Rota 404 - Redireciona para chat */}
+          {/* 404 */}
           <Route path="*" element={<Navigate to="/chat" replace />} />
         </Routes>
       </AnimatePresence>

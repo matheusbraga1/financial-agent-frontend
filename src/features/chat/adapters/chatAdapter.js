@@ -20,11 +20,18 @@ import { BACKEND_ROLES, FRONTEND_MESSAGE_TYPES, validators } from '../types/apiT
  * - content: string (sempre)
  *
  * @param {Object} backendMessage - Mensagem do backend
- * @returns {Object} Mensagem no formato frontend
+ * @returns {Object|null} Mensagem no formato frontend ou null se inválida
  */
 export const adaptHistoryMessage = (backendMessage) => {
-  if (!validators.isValidBackendMessage(backendMessage)) {
-    console.warn('Mensagem inválida recebida do backend:', backendMessage);
+  // Validação básica
+  if (!backendMessage || typeof backendMessage !== 'object') {
+    console.warn('adaptHistoryMessage: mensagem inválida', backendMessage);
+    return null;
+  }
+
+  // Validação de estrutura (mais flexível)
+  if (!backendMessage.role || !validators.isValidBackendRole(backendMessage.role)) {
+    console.warn('adaptHistoryMessage: role inválido', backendMessage);
     return null;
   }
 
@@ -44,22 +51,24 @@ export const adaptHistoryMessage = (backendMessage) => {
   const messageContent = role === BACKEND_ROLES.USER ? content : answer;
 
   // Valida que há conteúdo
-  if (!messageContent) {
-    console.warn('Mensagem sem conteúdo:', backendMessage);
+  if (!messageContent && messageContent !== '') {
+    console.warn('adaptHistoryMessage: mensagem sem conteúdo', backendMessage);
     return null;
   }
 
-  // Converte timestamp para Date
+  // Converte timestamp para Date com fallback seguro
   let parsedTimestamp;
   try {
     parsedTimestamp = timestamp ? new Date(timestamp) : new Date();
+    if (isNaN(parsedTimestamp.getTime())) {
+      parsedTimestamp = new Date();
+    }
   } catch {
-    console.warn('Erro ao parsear timestamp:', timestamp);
     parsedTimestamp = new Date();
   }
 
   return {
-    id: String(message_id || Date.now()),
+    id: String(message_id ?? `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`),
     type: role === BACKEND_ROLES.USER ? FRONTEND_MESSAGE_TYPES.USER : FRONTEND_MESSAGE_TYPES.ASSISTANT,
     content: messageContent,
     timestamp: parsedTimestamp,
@@ -79,7 +88,7 @@ export const adaptHistoryMessage = (backendMessage) => {
  */
 export const adaptHistoryMessages = (backendMessages) => {
   if (!Array.isArray(backendMessages)) {
-    console.error('adaptHistoryMessages esperava um array, recebeu:', typeof backendMessages);
+    console.error('adaptHistoryMessages: esperava array, recebeu:', typeof backendMessages);
     return [];
   }
 
@@ -96,7 +105,7 @@ export const adaptHistoryMessages = (backendMessages) => {
  */
 export const adaptChatHistory = (backendHistory) => {
   if (!backendHistory || typeof backendHistory !== 'object') {
-    console.error('adaptChatHistory recebeu dados inválidos:', backendHistory);
+    console.error('adaptChatHistory: dados inválidos', backendHistory);
     return { sessionId: null, messages: [] };
   }
 
@@ -108,25 +117,21 @@ export const adaptChatHistory = (backendHistory) => {
 
 /**
  * Converte informação de sessão do backend para frontend
- *
- * Backend:
- * - session_id: string
- * - created_at: ISO string
- * - message_count: number
- * - last_message: string (opcional, pode não existir ainda)
- *
- * Frontend:
- * - session_id: string
- * - created_at: Date (validado)
- * - message_count: number
- * - last_message: string (sanitizado)
+ * CORRIGIDO: Aceita last_message como null/undefined
  *
  * @param {Object} backendSession
- * @returns {Object}
+ * @returns {Object|null}
  */
 export const adaptSession = (backendSession) => {
-  if (!validators.isValidBackendSession(backendSession)) {
-    console.warn('Sessão inválida recebida do backend:', backendSession);
+  // Validação básica
+  if (!backendSession || typeof backendSession !== 'object') {
+    console.warn('adaptSession: sessão inválida', backendSession);
+    return null;
+  }
+
+  // Validação de campos obrigatórios (session_id e created_at)
+  if (!backendSession.session_id || typeof backendSession.session_id !== 'string') {
+    console.warn('adaptSession: session_id inválido', backendSession);
     return null;
   }
 
@@ -135,26 +140,23 @@ export const adaptSession = (backendSession) => {
   // Parse e valida data
   let parsedDate;
   try {
-    parsedDate = new Date(created_at);
-    // Valida se é uma data válida
+    parsedDate = created_at ? new Date(created_at) : new Date();
     if (isNaN(parsedDate.getTime())) {
-      console.warn('Data inválida recebida:', created_at);
       parsedDate = new Date();
     }
-  } catch (error) {
-    console.warn('Erro ao parsear created_at:', created_at, error);
+  } catch {
     parsedDate = new Date();
   }
 
-  // Sanitiza last_message (remover excesso de espaços)
+  // Sanitiza last_message (permite null/undefined)
   const sanitizedMessage = last_message
-    ? last_message.trim().replace(/\s+/g, ' ')
+    ? String(last_message).trim().replace(/\s+/g, ' ')
     : 'Nova conversa';
 
   return {
     session_id,
     created_at: parsedDate,
-    message_count: message_count || 0,
+    message_count: typeof message_count === 'number' ? message_count : 0,
     last_message: sanitizedMessage,
   };
 };
@@ -167,7 +169,7 @@ export const adaptSession = (backendSession) => {
  */
 export const adaptSessions = (backendSessions) => {
   if (!Array.isArray(backendSessions)) {
-    console.error('adaptSessions esperava um array, recebeu:', typeof backendSessions);
+    console.error('adaptSessions: esperava array, recebeu:', typeof backendSessions);
     return [];
   }
 
@@ -179,22 +181,8 @@ export const adaptSessions = (backendSessions) => {
 /**
  * Converte resposta de streaming SSE para formato padronizado
  *
- * Backend envia eventos no formato:
- * - Token: { type: 'token', data: 'texto' }
- * - Sources: { type: 'sources', data: [...] }
- * - Confidence: { type: 'confidence', data: 0.95 }
- * - Metadata: { type: 'metadata', data: { session_id, message_id, ... } }
- * - Done: { type: 'done' }
- *
- * Frontend espera:
- * - Token: { type: 'token', content: 'texto' }
- * - Sources: { type: 'sources', sources: [...] }
- * - Confidence: { type: 'confidence', confidence: 0.95 }
- * - Metadata: { type: 'metadata', session_id, message_id, ... }
- * - Done: { type: 'done' }
- *
  * @param {Object} sseData - Dados do evento SSE do backend
- * @returns {Object} Dados normalizados para o frontend
+ * @returns {Object|null} Dados normalizados para o frontend
  */
 export const adaptStreamEvent = (sseData) => {
   if (!sseData || typeof sseData !== 'object' || !sseData.type) {
@@ -203,88 +191,66 @@ export const adaptStreamEvent = (sseData) => {
 
   const { type, data } = sseData;
 
-  // Evento 'start' - sinaliza início do streaming (enviado pelo backend)
-  if (type === 'start') {
-    return { type: 'start' };
+  switch (type) {
+    case 'done':
+      return { type: 'done' };
+
+    case 'error':
+      return {
+        type: 'error',
+        message: data?.message || 'Erro desconhecido',
+      };
+
+    case 'token':
+      return {
+        type: 'token',
+        content: typeof data === 'string' ? data : '',
+      };
+
+    case 'sources':
+      return {
+        type: 'sources',
+        sources: Array.isArray(data) ? data : [],
+      };
+
+    case 'confidence':
+      return {
+        type: 'confidence',
+        confidence: typeof data === 'number' ? data : null,
+      };
+
+    case 'metadata':
+      if (typeof data !== 'object') return null;
+      return {
+        type: 'metadata',
+        session_id: data.session_id,
+        message_id: data.message_id,
+        model_used: data.model_used,
+        confidence: data.confidence,
+        persisted: data.persisted,
+        timestamp: data.timestamp,
+      };
+
+    default:
+      console.warn('Tipo de evento SSE desconhecido:', type);
+      return { type, data };
   }
-
-  // Evento 'done' não tem dados adicionais
-  if (type === 'done') {
-    return { type: 'done' };
-  }
-
-  // Evento 'error' - repassa a mensagem de erro
-  if (type === 'error') {
-    return {
-      type: 'error',
-      message: data?.message || 'Erro desconhecido',
-    };
-  }
-
-  // Evento 'token' - converte 'data' para 'content'
-  if (type === 'token') {
-    return {
-      type: 'token',
-      content: typeof data === 'string' ? data : '',
-    };
-  }
-
-  // Evento 'sources' - converte 'data' para 'sources'
-  if (type === 'sources') {
-    return {
-      type: 'sources',
-      sources: Array.isArray(data) ? data : [],
-    };
-  }
-
-  // Evento 'confidence' - converte 'data' para 'confidence'
-  if (type === 'confidence') {
-    return {
-      type: 'confidence',
-      confidence: typeof data === 'number' ? data : null,
-    };
-  }
-
-  // Evento 'metadata' - espalha os dados do objeto data diretamente
-  if (type === 'metadata') {
-    if (typeof data !== 'object') {
-      return null;
-    }
-
-    return {
-      type: 'metadata',
-      session_id: data.session_id,
-      message_id: data.message_id,
-      model_used: data.model_used,
-      confidence: data.confidence,
-      persisted: data.persisted,
-      timestamp: data.timestamp,
-    };
-  }
-
-  // Tipo desconhecido - retorna como está
-  console.warn('Tipo de evento SSE desconhecido:', type);
-  return { type, data };
 };
 
 /**
  * Prepara payload de feedback para enviar ao backend
  *
- * Frontend pode usar: 'positive', 'negative', 'neutral' (e variantes em português)
- * Backend espera: 'positive', 'negative' ou 'neutral'
- *
- * @param {string} sessionId - ID da sessão
- * @param {string|number} messageId - ID da mensagem
- * @param {string} rating - 'positive', 'negative', 'neutral' ou variantes
- * @param {string|null} comment - Comentário opcional
- * @returns {Object} Payload formatado para a API
+ * @param {string} sessionId
+ * @param {string|number} messageId
+ * @param {string} rating
+ * @param {string|null} comment
+ * @returns {Object} Payload formatado
  */
 export const prepareFeedbackPayload = (sessionId, messageId, rating, comment = null) => {
-  // Normaliza rating para o formato esperado pelo backend
   const normalizedRating = normalizeRating(rating);
 
   if (!normalizedRating) {
-    throw new Error(`Rating inválido: ${rating}. Use 'positive', 'negative' ou 'neutral'`);
+    throw new Error(`Rating inválido: ${rating}. Use 'positive', 'negative', 'positivo' ou 'negativo'`);
   }
 
   const payload = {
@@ -293,7 +259,7 @@ export const prepareFeedbackPayload = (sessionId, messageId, rating, comment = n
     rating: normalizedRating,
   };
 
-  if (comment && comment.trim()) {
+  if (comment && typeof comment === 'string' && comment.trim()) {
     payload.comment = comment.trim();
   }
 
@@ -301,13 +267,10 @@ export const prepareFeedbackPayload = (sessionId, messageId, rating, comment = n
 };
 
 /**
- * Normaliza rating para formato aceito pelo backend
+ * Normaliza rating para formato do backend
  *
- * Backend aceita: positive, positivo, negative, negativo, neutral
- * @see manage_conversation_use_case._is_helpful_rating()
- *
- * @param {string} rating - Rating em qualquer formato aceito
- * @returns {string|null} Rating normalizado ou null se inválido
+ * @param {string} rating
+ * @returns {string|null} 'positivo' ou 'negativo', ou null se inválido
  */
 const normalizeRating = (rating) => {
   if (!rating || typeof rating !== 'string') {
@@ -316,21 +279,15 @@ const normalizeRating = (rating) => {
 
   const normalized = rating.toLowerCase().trim();
 
-  // Mapeamento para valores aceitos pelo backend
-  const positiveValues = ['positive', 'positivo', 'upvote', 'thumbs_up', 'good', 'bom', 'helpful', 'like'];
-  const negativeValues = ['negative', 'negativo', 'downvote', 'thumbs_down', 'bad', 'ruim', 'unhelpful', 'dislike'];
-  const neutralValues = ['neutral', 'neutro', 'ok', 'meh'];
+  const positiveValues = ['positive', 'positivo', 'upvote', 'thumbs_up', 'good', 'bom'];
+  const negativeValues = ['negative', 'negativo', 'downvote', 'thumbs_down', 'bad', 'ruim'];
 
   if (positiveValues.includes(normalized)) {
-    return 'positive'; // Formato padrão conforme documentação da API
+    return 'positivo';
   }
 
   if (negativeValues.includes(normalized)) {
-    return 'negative'; // Formato padrão conforme documentação da API
-  }
-
-  if (neutralValues.includes(normalized)) {
-    return 'neutral'; // Formato padrão conforme documentação da API
+    return 'negativo';
   }
 
   return null;
@@ -339,25 +296,12 @@ const normalizeRating = (rating) => {
 /**
  * Adapta resposta completa (não-streaming) do backend
  *
- * Backend retorna:
- * - answer: string (conteúdo da resposta)
- * - sources: Array
- * - confidence: number
- * - model_used: string
- * - session_id: string
- * - persisted: boolean
- * - message_id: string (opcional)
- *
- * Frontend espera:
- * - content: string (não "answer")
- * - sources, confidence, modelUsed (camelCase)
- *
  * @param {Object} backendResponse - Resposta do endpoint POST /chat
  * @returns {Object} Resposta adaptada para o frontend
  */
 export const adaptChatResponse = (backendResponse) => {
   if (!backendResponse || typeof backendResponse !== 'object') {
-    console.error('adaptChatResponse recebeu dados inválidos:', backendResponse);
+    console.error('adaptChatResponse: dados inválidos', backendResponse);
     return {
       content: '',
       sources: [],
@@ -379,13 +323,9 @@ export const adaptChatResponse = (backendResponse) => {
 
 /**
  * Utilitário para logging de adaptações (apenas em DEV)
- *
- * @param {string} adapterName
- * @param {any} input
- * @param {any} output
  */
 export const logAdaptation = (adapterName, input, output) => {
-  if (import.meta.env.DEV) {
+  if (import.meta.env?.DEV) {
     console.groupCollapsed(`[Adapter] ${adapterName}`);
     console.log('Input:', input);
     console.log('Output:', output);
