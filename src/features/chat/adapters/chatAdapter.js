@@ -53,7 +53,7 @@ export const adaptHistoryMessage = (backendMessage) => {
   let parsedTimestamp;
   try {
     parsedTimestamp = timestamp ? new Date(timestamp) : new Date();
-  } catch (error) {
+  } catch {
     console.warn('Erro ao parsear timestamp:', timestamp);
     parsedTimestamp = new Date();
   }
@@ -203,6 +203,11 @@ export const adaptStreamEvent = (sseData) => {
 
   const { type, data } = sseData;
 
+  // Evento 'start' - sinaliza início do streaming (enviado pelo backend)
+  if (type === 'start') {
+    return { type: 'start' };
+  }
+
   // Evento 'done' não tem dados adicionais
   if (type === 'done') {
     return { type: 'done' };
@@ -265,21 +270,21 @@ export const adaptStreamEvent = (sseData) => {
 /**
  * Prepara payload de feedback para enviar ao backend
  *
- * Frontend pode usar: 'positive', 'negative', 'positivo', 'negativo'
- * Backend espera: 'positivo' ou 'negativo'
+ * Frontend pode usar: 'positive', 'negative', 'neutral' (e variantes em português)
+ * Backend espera: 'positive', 'negative' ou 'neutral'
  *
- * @param {string} sessionId
- * @param {string|number} messageId
- * @param {string} rating
- * @param {string|null} comment
- * @returns {Object} Payload formatado
+ * @param {string} sessionId - ID da sessão
+ * @param {string|number} messageId - ID da mensagem
+ * @param {string} rating - 'positive', 'negative', 'neutral' ou variantes
+ * @param {string|null} comment - Comentário opcional
+ * @returns {Object} Payload formatado para a API
  */
 export const prepareFeedbackPayload = (sessionId, messageId, rating, comment = null) => {
   // Normaliza rating para o formato esperado pelo backend
   const normalizedRating = normalizeRating(rating);
 
   if (!normalizedRating) {
-    throw new Error(`Rating inválido: ${rating}. Use 'positive', 'negative', 'positivo' ou 'negativo'`);
+    throw new Error(`Rating inválido: ${rating}. Use 'positive', 'negative' ou 'neutral'`);
   }
 
   const payload = {
@@ -296,10 +301,13 @@ export const prepareFeedbackPayload = (sessionId, messageId, rating, comment = n
 };
 
 /**
- * Normaliza rating para formato do backend
+ * Normaliza rating para formato aceito pelo backend
  *
- * @param {string} rating
- * @returns {string|null} 'positivo' ou 'negativo', ou null se inválido
+ * Backend aceita: positive, positivo, negative, negativo, neutral
+ * @see manage_conversation_use_case._is_helpful_rating()
+ *
+ * @param {string} rating - Rating em qualquer formato aceito
+ * @returns {string|null} Rating normalizado ou null se inválido
  */
 const normalizeRating = (rating) => {
   if (!rating || typeof rating !== 'string') {
@@ -308,15 +316,21 @@ const normalizeRating = (rating) => {
 
   const normalized = rating.toLowerCase().trim();
 
-  const positiveValues = ['positive', 'positivo', 'upvote', 'thumbs_up', 'good', 'bom'];
-  const negativeValues = ['negative', 'negativo', 'downvote', 'thumbs_down', 'bad', 'ruim'];
+  // Mapeamento para valores aceitos pelo backend
+  const positiveValues = ['positive', 'positivo', 'upvote', 'thumbs_up', 'good', 'bom', 'helpful', 'like'];
+  const negativeValues = ['negative', 'negativo', 'downvote', 'thumbs_down', 'bad', 'ruim', 'unhelpful', 'dislike'];
+  const neutralValues = ['neutral', 'neutro', 'ok', 'meh'];
 
   if (positiveValues.includes(normalized)) {
-    return 'positivo';
+    return 'positive'; // Formato padrão conforme documentação da API
   }
 
   if (negativeValues.includes(normalized)) {
-    return 'negativo';
+    return 'negative'; // Formato padrão conforme documentação da API
+  }
+
+  if (neutralValues.includes(normalized)) {
+    return 'neutral'; // Formato padrão conforme documentação da API
   }
 
   return null;

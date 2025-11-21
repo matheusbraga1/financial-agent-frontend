@@ -24,13 +24,19 @@ const ChatInput = ({ onSendMessage, onStopGeneration, isLoading, isStreaming }) 
   const [isFocused, setIsFocused] = useState(false);
   const textareaRef = useRef(null);
 
-  // Auto-resize do textarea
+  // Auto-resize do textarea - expande conforme conteúdo (estilo Claude/ChatGPT)
   useEffect(() => {
     const textarea = textareaRef.current;
     if (!textarea) return;
 
+    // Reset para calcular altura real do conteúdo
     textarea.style.height = 'auto';
-    textarea.style.height = `${Math.min(textarea.scrollHeight, TEXTAREA_MAX_HEIGHT)}px`;
+
+    // Calcula nova altura baseada no conteúdo
+    const scrollHeight = textarea.scrollHeight;
+    const newHeight = Math.min(scrollHeight, TEXTAREA_MAX_HEIGHT);
+
+    textarea.style.height = `${newHeight}px`;
   }, [input]);
 
   const handleSubmit = (e) => {
@@ -89,11 +95,11 @@ const ChatInput = ({ onSendMessage, onStopGeneration, isLoading, isStreaming }) 
         {/* Input principal */}
         <div
           className={`
-            relative bg-white dark:bg-dark-card rounded-2xl sm:rounded-3xl
-            border-2 transition-all duration-300 ease-in-out
-            shadow-lg hover:shadow-xl
+            relative bg-white dark:bg-dark-card rounded-xl sm:rounded-2xl
+            border transition-all duration-300 ease-in-out
+            shadow-md hover:shadow-lg
             ${isFocused
-              ? 'border-primary-500 dark:border-primary-600 ring-4 ring-primary-100 dark:ring-primary-900/30 shadow-2xl shadow-primary-500/10 dark:shadow-primary-900/30'
+              ? 'border-primary-500 dark:border-primary-600 ring-2 ring-primary-100 dark:ring-primary-900/30 shadow-lg shadow-primary-500/10 dark:shadow-primary-900/30'
               : 'border-gray-200 dark:border-dark-border hover:border-gray-300 dark:hover:border-primary-800'
             }
           `}
@@ -110,17 +116,17 @@ const ChatInput = ({ onSendMessage, onStopGeneration, isLoading, isStreaming }) 
             disabled={isLoading || isStreaming}
             rows={1}
             className="
-              w-full px-4 sm:px-5 lg:px-6 py-3 sm:py-4 pr-20 sm:pr-28
-              bg-transparent rounded-2xl sm:rounded-3xl
+              w-full px-3 sm:px-4 py-2.5 sm:py-3 pr-16 sm:pr-20
+              bg-transparent rounded-xl sm:rounded-2xl
               outline-none focus:outline-none focus-visible:outline-none
-              resize-none
+              resize-none overflow-hidden
               disabled:opacity-50 disabled:cursor-not-allowed
-              text-sm sm:text-base lg:text-lg
+              text-sm sm:text-base
               text-gray-900 dark:text-gray-100
               placeholder-gray-400 dark:placeholder-gray-500
               selection:bg-primary-200 dark:selection:bg-primary-700
               selection:text-primary-900 dark:selection:text-primary-100
-              leading-relaxed
+              leading-normal
             "
             style={{
               minHeight: `${TEXTAREA_MIN_HEIGHT}px`,
@@ -133,7 +139,7 @@ const ChatInput = ({ onSendMessage, onStopGeneration, isLoading, isStreaming }) 
           />
 
           {/* Ações (contador + botão enviar) */}
-          <div className="absolute right-2 sm:right-3 bottom-2 sm:bottom-3 flex items-center gap-1.5 sm:gap-2">
+          <div className="absolute right-1.5 sm:right-2 bottom-1.5 sm:bottom-2 flex items-center gap-1 sm:gap-1.5">
             {/* Contador de caracteres progressivo */}
             {isNearLimit && (
               <div
@@ -159,18 +165,18 @@ const ChatInput = ({ onSendMessage, onStopGeneration, isLoading, isStreaming }) 
                 onClick={handleStop}
                 className="
                   relative overflow-hidden
-                  p-2.5 sm:p-3 lg:p-3.5
-                  rounded-xl sm:rounded-2xl
+                  p-2 sm:p-2.5
+                  rounded-lg sm:rounded-xl
                   font-medium text-white
                   transition-all duration-200 ease-out
                   flex items-center justify-center
-                  min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px]
+                  min-w-[36px] min-h-[36px] sm:min-w-[40px] sm:min-h-[40px]
                   touch-manipulation
                   bg-gradient-to-r from-red-600 to-red-500
                   dark:from-red-500 dark:to-red-400
                   hover:from-red-700 hover:to-red-600
                   dark:hover:from-red-600 dark:hover:to-red-500
-                  hover:shadow-lg hover:shadow-red-500/30
+                  hover:shadow-md hover:shadow-red-500/30
                   dark:hover:shadow-red-900/50
                   hover:scale-105 active:scale-95
                   cursor-pointer
@@ -179,7 +185,7 @@ const ChatInput = ({ onSendMessage, onStopGeneration, isLoading, isStreaming }) 
                 title="Parar geração"
                 aria-label="Parar geração"
               >
-                <Square className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
+                <Square className="w-4 h-4 fill-current" />
               </button>
             ) : (
               /* Botão Enviar / Loading */
@@ -188,15 +194,15 @@ const ChatInput = ({ onSendMessage, onStopGeneration, isLoading, isStreaming }) 
                 disabled={!canSubmit}
                 className={`
                   relative overflow-hidden
-                  p-2.5 sm:p-3 lg:p-3.5
-                  rounded-xl sm:rounded-2xl
+                  p-2 sm:p-2.5
+                  rounded-lg sm:rounded-xl
                   font-medium text-white
                   transition-all duration-200 ease-out
                   flex items-center justify-center
-                  min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px]
+                  min-w-[36px] min-h-[36px] sm:min-w-[40px] sm:min-h-[40px]
                   touch-manipulation
                   ${canSubmit
-                    ? 'bg-gradient-to-r from-primary-600 to-primary-500 dark:from-primary-500 dark:to-primary-400 hover:from-primary-700 hover:to-primary-600 dark:hover:from-primary-600 dark:hover:to-primary-500 hover:shadow-lg hover:shadow-primary-500/30 dark:hover:shadow-primary-900/50 hover:scale-105 active:scale-95 cursor-pointer'
+                    ? 'bg-gradient-to-r from-primary-600 to-primary-500 dark:from-primary-500 dark:to-primary-400 hover:from-primary-700 hover:to-primary-600 dark:hover:from-primary-600 dark:hover:to-primary-500 hover:shadow-md hover:shadow-primary-500/30 dark:hover:shadow-primary-900/50 hover:scale-105 active:scale-95 cursor-pointer'
                     : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
                   }
                 `}
@@ -209,9 +215,9 @@ const ChatInput = ({ onSendMessage, onStopGeneration, isLoading, isStreaming }) 
                 )}
 
                 {isLoading ? (
-                  <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  <Send className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <Send className="w-4 h-4" />
                 )}
               </button>
             )}

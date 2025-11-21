@@ -10,6 +10,7 @@ import remarkBreaks from 'remark-breaks';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import SourcesList from '../SourcesList';
+import ThinkingIndicator from '../ThinkingIndicator';
 import { MESSAGE_TYPES, AGENT_NAME } from '../../constants/chatConstants';
 
 const ChatMessage = memo(({ message, isStreaming = false, onFeedback, feedbackState }) => {
@@ -278,32 +279,37 @@ const ChatMessage = memo(({ message, isStreaming = false, onFeedback, feedbackSt
                   <span className="inline-block w-1.5 h-5 bg-primary-600 dark:bg-primary-500 ml-0.5 animate-blink align-middle" />
                 )}
               </>
-            ) : isStreaming ? (
-              <span className="inline-block w-1.5 h-5 bg-primary-600 dark:bg-primary-500 animate-blink align-middle" />
             ) : (
-              <span className="text-gray-400 dark:text-gray-500 italic text-sm">Sem conteúdo</span>
+              <ThinkingIndicator />
             )}
           </div>
 
-          <button
-            onClick={handleCopy}
-            className="absolute top-2 right-2 p-1.5 rounded-md transition-all opacity-0 group-hover:opacity-100 bg-gray-100 dark:bg-dark-hover hover:bg-gray-200 dark:hover:bg-primary-900/30"
-            title={copied ? 'Copiado!' : 'Copiar mensagem'}
-            aria-label="Copiar mensagem"
-          >
-            {copied ? (
-              <Check className="w-3.5 h-3.5 text-green-600" />
-            ) : (
-              <Copy className="w-3.5 h-3.5 text-gray-600 dark:text-gray-400" />
-            )}
-          </button>
+          {/* Botão copiar - só aparece quando há conteúdo */}
+          {message?.content && (
+            <button
+              onClick={handleCopy}
+              className="absolute top-2 right-2 p-1.5 rounded-md transition-all opacity-0 group-hover:opacity-100 bg-gray-100 dark:bg-dark-hover hover:bg-gray-200 dark:hover:bg-primary-900/30"
+              title={copied ? 'Copiado!' : 'Copiar mensagem'}
+              aria-label="Copiar mensagem"
+            >
+              {copied ? (
+                <Check className="w-3.5 h-3.5 text-green-600" />
+              ) : (
+                <Copy className="w-3.5 h-3.5 text-gray-600 dark:text-gray-400" />
+              )}
+            </button>
+          )}
         </div>
 
-        {message?.sources?.length > 0 && <SourcesList sources={message.sources} />}
+        {(message?.sources?.length > 0 || (message?.messageId && onFeedback)) && (
+          <div className="mt-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            <div className="flex items-center gap-1">
+              {/* Ícone de fontes consultadas */}
+              {message?.sources?.length > 0 && <SourcesList sources={message.sources} />}
 
-        {message?.messageId && onFeedback && (
-          <div className="mt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            <div className="flex items-center gap-2">
+              {/* Botões de feedback */}
+              {message?.messageId && onFeedback && (
+                <>
               <button
                 type="button"
                 disabled={feedbackState?.submitting}
@@ -354,9 +360,11 @@ const ChatMessage = memo(({ message, isStreaming = false, onFeedback, feedbackSt
                   Erro
                 </span>
               )}
+                </>
+              )}
             </div>
 
-            {isCommentOpen && (
+            {isCommentOpen && message?.messageId && onFeedback && (
               <div className="mt-3 space-y-2">
                 <div className="flex items-center gap-3 text-xs">
                   <label className="font-medium text-gray-600 dark:text-gray-300">

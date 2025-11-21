@@ -4,6 +4,7 @@ import { MessageSquare, LogOut, User, Sparkles, Activity } from 'lucide-react';
 import { useState } from 'react';
 import Sidebar from '../components/layout/Sidebar/Sidebar';
 import MobileHeader from '../components/layout/MobileHeader/MobileHeader';
+import { generateAvatarGradient, getAvatarInitial, getDisplayName } from '../utils';
 
 /**
  * Página Dashboard - Mobile-First Responsivo
@@ -59,12 +60,15 @@ const Dashboard = () => {
             {/* Cabeçalho com saudação - Mobile-first */}
             <div className="mb-6 sm:mb-8">
               <div className="flex items-center gap-2 sm:gap-3 mb-3">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center text-white text-base sm:text-lg font-bold shadow-lg flex-shrink-0">
-                  {user?.name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
+                <div
+                  className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-white text-base sm:text-lg font-bold shadow-lg flex-shrink-0"
+                  style={{ background: generateAvatarGradient(user?.username || user?.email || 'U') }}
+                >
+                  {getAvatarInitial(user)}
                 </div>
                 <div className="min-w-0">
                   <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white truncate">
-                    Bem-vindo, {user?.name || user?.email}!
+                    Bem-vindo, {getDisplayName(user)}!
                   </h1>
                   <p className="text-xs sm:text-sm lg:text-base text-gray-600 dark:text-gray-400 mt-0.5">
                     Pronto para conversar com o Agente da Financial?
@@ -100,20 +104,20 @@ const Dashboard = () => {
                   Seu Perfil
                 </h3>
                 <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
+                  {user?.username && (
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <span className="text-gray-500 dark:text-gray-400 flex-shrink-0">Usuário:</span>
+                      <span className="text-gray-900 dark:text-gray-200 font-medium truncate">
+                        {user.username}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex items-center gap-1.5 sm:gap-2">
                     <span className="text-gray-500 dark:text-gray-400 flex-shrink-0">Email:</span>
                     <span className="text-gray-900 dark:text-gray-200 font-medium truncate">
                       {user?.email}
                     </span>
                   </div>
-                  {user?.name && (
-                    <div className="flex items-center gap-1.5 sm:gap-2">
-                      <span className="text-gray-500 dark:text-gray-400 flex-shrink-0">Nome:</span>
-                      <span className="text-gray-900 dark:text-gray-200 font-medium truncate">
-                        {user.name}
-                      </span>
-                    </div>
-                  )}
                   {user?.is_admin && (
                     <div className="flex items-center gap-1.5 mt-2 sm:mt-3 px-2 sm:px-3 py-1 sm:py-1.5 bg-primary-100 dark:bg-primary-900/30 rounded-lg text-primary-700 dark:text-primary-400 font-medium w-fit text-xs">
                       <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />

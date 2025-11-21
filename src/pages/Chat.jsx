@@ -76,6 +76,7 @@ const Chat = () => {
   /**
    * Handler: Captura primeira mensagem de nova sessão
    * Notifica sidebar para adicionar ao histórico com efeito de digitação
+   * E SELECIONA a nova sessão automaticamente para manter consistência visual
    */
   const handleFirstMessage = useCallback((sessionId, message) => {
     // Só processa se ainda não foi registrada
@@ -86,7 +87,11 @@ const Chat = () => {
     // Marca como processada
     sessionFirstMessageRef.current[sessionId] = message;
 
-    // Cria objeto para o sidebar
+    // IMPORTANTE: Atualiza currentSessionId para selecionar a nova sessão
+    // Isso garante que o item fique "ativo" no sidebar imediatamente
+    setCurrentSessionId(sessionId);
+
+    // Cria objeto para o sidebar adicionar ao histórico
     setNewSessionData({
       sessionId,
       firstMessage: message,

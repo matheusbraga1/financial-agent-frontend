@@ -56,16 +56,18 @@
  * @typedef {Object} FeedbackPayload
  * @property {string} session_id - ID da sessão
  * @property {string} message_id - ID da mensagem
- * @property {'positivo'|'negativo'} rating - Avaliação
+ * @property {'positive'|'negative'|'neutral'} rating - Avaliação
  * @property {string} [comment] - Comentário opcional
  */
 
 /**
  * Tipos de rating aceitos pelo backend
+ * @see manage_conversation_use_case._is_helpful_rating()
  */
 export const RATING_TYPES = {
-  POSITIVE: 'positivo',
-  NEGATIVE: 'negativo',
+  POSITIVE: 'positive',
+  NEGATIVE: 'negative',
+  NEUTRAL: 'neutral',
 };
 
 /**
@@ -124,6 +126,8 @@ export const validators = {
 
   /**
    * Valida estrutura de sessão do backend
+   * Backend retorna: { session_id, created_at, message_count, last_message }
+   * last_message pode ser null/undefined para sessões novas
    * @param {any} session
    * @returns {boolean}
    */
@@ -134,7 +138,10 @@ export const validators = {
       typeof session.session_id === 'string' &&
       typeof session.created_at === 'string' &&
       typeof session.message_count === 'number' &&
-      typeof session.last_message === 'string'
+      // last_message é opcional - pode ser null/undefined para sessões novas
+      (session.last_message === undefined ||
+        session.last_message === null ||
+        typeof session.last_message === 'string')
     );
   },
 };

@@ -2,7 +2,7 @@ import { apiClient } from '../../../services/api/axios.config';
 import { config } from '../../../config/env';
 import { handleApiError } from '../../../utils';
 import { STREAM_TIMEOUT } from '../../../constants/apiConstants';
-import { CHAT_ERRORS, NETWORK_ERRORS, extractErrorMessage } from '../../../constants/errorMessages';
+import { CHAT_ERRORS, NETWORK_ERRORS } from '../../../constants/errorMessages';
 import {
   adaptChatHistory,
   adaptSessions,
@@ -43,7 +43,13 @@ class ChatService {
   }
 
   /**
-   * Aborta o streaming atual (apenas frontend)
+   * Aborta o streaming atual e cancela a geração no backend
+   *
+   * O backend detecta automaticamente a desconexão do cliente via GeneratorExit
+   * e seta o cancel_event para interromper a geração do LLM.
+   * Não é necessário endpoint separado - o AbortController é suficiente.
+   *
+   * @see backend: chat.py - GeneratorExit handler + cancel_event
    */
   abortStream() {
     if (this.currentStreamController) {
@@ -53,24 +59,13 @@ class ChatService {
   }
 
   /**
-   * Cancela a geração no backend
-   * @param {string} sessionId - ID da sessão para cancelar
-   * @returns {Promise<{message: string}>}
+   * Cancela o streaming da sessão atual
+   *
+   * Alias para abortStream() - mantido para compatibilidade de API.
+   * O cancelamento server-side é automático quando a conexão é fechada.
    */
-  async cancelStream(sessionId) {
-    try {
-      if (!sessionId) {
-        console.warn('cancelStream: sessionId não fornecido');
-        return;
-      }
-
-      const response = await apiClient.delete(`/chat/stream/${sessionId}`);
-      return response.data;
-    } catch (error) {
-      // Log silencioso - não precisa mostrar erro ao usuário
-      // pois o stream já foi abortado no frontend
-      console.debug('Erro ao cancelar stream no backend:', error?.message);
-    }
+  cancelStream() {
+    this.abortStream();
   }
 
   /**
@@ -339,11 +334,12 @@ class ChatService {
 
   /**
    * Verifica saúde da API
-   * @returns {Promise<{status: string, timestamp: string}>}
+   * @returns {Promise<{status: string, version: string, timestamp: string, components: Object, system: Object}>}
    */
   async healthCheck() {
     try {
-      const response = await apiClient.get('/chat/health');
+      // Endpoint de health está no router /health, não /chat/health
+      const response = await apiClient.get('/health');
       return response.data;
     } catch (error) {
       throw handleApiError(error);
@@ -351,8 +347,8 @@ class ChatService {
   }
 
   /**
-   * Busca informações sobre modelos disponíveis
-   * @returns {Promise<{models: Array<string>, default: string}>}
+   * Busca configuração de modelos do sistema
+   * @returns {Promise<{llm: {provider: string, model: string, temperature: number}, embeddings: {model: string, dimension: number}, rag: {top_k: number, min_similarity: number, reranking_enabled: boolean}}>}
    */
   async getModels() {
     try {

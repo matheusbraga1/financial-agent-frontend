@@ -1,65 +1,49 @@
-import { useState } from 'react';
-import { FileText, Tag, ChevronDown, ChevronUp } from 'lucide-react';
+import { FileText } from 'lucide-react';
 
+/**
+ * SourcesList - Lista de fontes consultadas
+ * Ícone com tooltip - não ocupa espaço vertical
+ */
 const SourcesList = ({ sources }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-
   if (!sources || sources.length === 0) return null;
 
   return (
-    <div className="mt-4 border-t border-gray-200 dark:border-dark-border pt-4">
-      {/* Header colapsável */}
+    <div className="relative inline-block group/sources">
       <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-gray-50 dark:bg-dark-hover hover:bg-gray-100 dark:hover:bg-dark-card rounded-lg transition-colors text-left group"
+        type="button"
+        className="p-1.5 rounded-md text-gray-400 dark:text-gray-500 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-100 dark:hover:bg-dark-hover transition-colors"
+        aria-label={`${sources.length} fontes consultadas`}
       >
-        <div className="flex items-center gap-2">
-          <FileText className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            {sources.length} {sources.length === 1 ? 'fonte consultada' : 'fontes consultadas'}
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
-            {isExpanded ? 'Ocultar' : 'Ver detalhes'}
-          </span>
-          {isExpanded ? (
-            <ChevronUp className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-          ) : (
-            <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-          )}
-        </div>
+        <FileText className="w-3.5 h-3.5" />
       </button>
 
-      {/* Lista de fontes (colapsável) */}
-      {isExpanded && (
-        <div className="mt-3 space-y-2 animate-fade-in">
-          {sources.map((source, index) => (
-            <div
-              key={source.id || index}
-              className="flex items-start gap-3 p-3 bg-white dark:bg-dark-card border border-gray-200 dark:border-dark-border rounded-lg text-sm hover:border-primary-300 dark:hover:border-primary-700 hover:shadow-sm transition-all"
-            >
-              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 text-white flex items-center justify-center text-xs font-semibold shadow-sm">
-                {index + 1}
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-900 dark:text-gray-100 mb-1.5">
-                  {source.title}
-                </p>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-secondary-50 dark:bg-secondary-900/30 border border-secondary-200 dark:border-secondary-700 rounded-md text-secondary-700 dark:text-secondary-300 text-xs font-medium">
-                    <Tag className="w-3 h-3" />
-                    {source.category}
+      {/* Tooltip com fontes */}
+      <div className="absolute bottom-full left-0 mb-2 hidden group-hover/sources:block z-50 animate-fade-in">
+        <div className="bg-white dark:bg-dark-card border border-gray-200 dark:border-dark-border rounded-lg shadow-lg p-3 min-w-[200px] max-w-[300px]">
+          <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+            Fontes consultadas
+          </p>
+          <div className="space-y-1.5">
+            {sources.map((source, index) => (
+              <div
+                key={source.id || index}
+                className="text-xs text-gray-700 dark:text-gray-300"
+              >
+                <span className="font-medium">
+                  {source.title || source.document_name || `Fonte ${index + 1}`}
+                </span>
+                {(source.score || source.relevance_score) && (
+                  <span className="text-gray-400 dark:text-gray-500 ml-1">
+                    ({((source.score || source.relevance_score) * 100).toFixed(0)}%)
                   </span>
-                  <span className="text-xs text-primary-600 dark:text-primary-400 font-medium">
-                    {(source.score * 100).toFixed(0)}% relevante
-                  </span>
-                </div>
+                )}
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      )}
+        {/* Seta do tooltip */}
+        <div className="absolute left-3 -bottom-1 w-2 h-2 bg-white dark:bg-dark-card border-r border-b border-gray-200 dark:border-dark-border transform rotate-45" />
+      </div>
     </div>
   );
 };

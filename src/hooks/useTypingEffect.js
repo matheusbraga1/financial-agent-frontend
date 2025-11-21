@@ -1,8 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 /**
  * Hook para criar efeito de digitação (typing effect)
  * Similar ao ChatGPT e Claude AI
+ *
+ * IMPORTANTE: Este hook usa refs para rastrear valores anteriores
+ * e evitar resets desnecessários quando o componente re-renderiza
+ * mas o texto não mudou de fato.
  *
  * @param {string} text - Texto completo a ser digitado
  * @param {number} speed - Velocidade de digitação em ms (default: 30)
@@ -17,53 +21,84 @@ export const useTypingEffect = (text, speed = 30, enabled = true) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTyping, setIsTyping] = useState(false);
   const [isDone, setIsDone] = useState(false);
-  const timeoutRef = useRef(null);
 
+  // Refs para evitar resets desnecessários
+  const timeoutRef = useRef(null);
+  const previousTextRef = useRef('');
+  const hasCompletedRef = useRef(false);
+  const isInitializedRef = useRef(false);
+
+  /**
+   * Limpa o timeout atual
+   */
+  const clearCurrentTimeout = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  }, []);
+
+  // Efeito principal - controla inicio/reset da digitação
   useEffect(() => {
-    // Se não está ativado, mostra texto completo imediatamente
+    const textActuallyChanged = text !== previousTextRef.current;
+
+    // Se não está ativado, mostra texto completo
     if (!enabled) {
-      setDisplayedText(text);
-      setIsDone(true);
-      setIsTyping(false);
+      // Só atualiza se o texto mudou ou não está mostrando o texto correto
+      if (textActuallyChanged || displayedText !== text) {
+        clearCurrentTimeout();
+        setDisplayedText(text);
+        setIsDone(true);
+        setIsTyping(false);
+        hasCompletedRef.current = true;
+        previousTextRef.current = text;
+      }
       return;
     }
 
-    // Reset quando o texto muda
-    if (text) {
+    // Se o texto realmente mudou (comparação de valor, não referência)
+    if (textActuallyChanged && text) {
+      previousTextRef.current = text;
+      clearCurrentTimeout();
       setDisplayedText('');
       setCurrentIndex(0);
       setIsTyping(true);
       setIsDone(false);
+      hasCompletedRef.current = false;
+      isInitializedRef.current = true;
+    }
+    // Primeira inicialização com texto (ainda não inicializado)
+    else if (!isInitializedRef.current && text) {
+      previousTextRef.current = text;
+      clearCurrentTimeout();
+      setDisplayedText('');
+      setCurrentIndex(0);
+      setIsTyping(true);
+      setIsDone(false);
+      hasCompletedRef.current = false;
+      isInitializedRef.current = true;
     }
 
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, [text, enabled]);
+    return clearCurrentTimeout;
+  }, [text, enabled, displayedText, clearCurrentTimeout]);
 
+  // Efeito de digitação caractere por caractere
   useEffect(() => {
-    if (!enabled || !text) return;
+    if (!enabled || !text || !isTyping) return;
 
     if (currentIndex < text.length) {
-      setIsTyping(true);
-
       timeoutRef.current = setTimeout(() => {
         setDisplayedText(text.substring(0, currentIndex + 1));
         setCurrentIndex(prev => prev + 1);
       }, speed);
 
-      return () => {
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current);
-        }
-      };
+      return clearCurrentTimeout;
     } else if (currentIndex === text.length && text.length > 0) {
       setIsTyping(false);
       setIsDone(true);
+      hasCompletedRef.current = true;
     }
-  }, [currentIndex, text, speed, enabled]);
+  }, [currentIndex, text, speed, enabled, isTyping, clearCurrentTimeout]);
 
   return {
     displayedText,

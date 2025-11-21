@@ -193,18 +193,16 @@ export const useChat = (useStreaming = true, initialSessionId = null) => {
    */
   const handleStreamingResponse = async (question) => {
     let contentBuffer = '';
-    let assistantId = null;
     let backendSessionId = null;
+
+    // Cria mensagem do assistente IMEDIATAMENTE para mostrar ThinkingIndicator
+    const assistantMessage = createAssistantMessage();
+    const assistantId = addMessage(assistantMessage);
 
     await chatService.sendMessageStream(
       question,
       sessionIdRef.current,
       (data) => {
-        // Cria mensagem do assistente no primeiro evento
-        if (!assistantId && (data?.type === 'token' || data?.type === 'sources' || data?.type === 'metadata')) {
-          const assistantMessage = createAssistantMessage();
-          assistantId = addMessage(assistantMessage);
-        }
 
         // Processa diferentes tipos de eventos SSE
         switch (data?.type) {

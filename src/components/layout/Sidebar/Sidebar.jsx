@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Clock, FileText } from 'lucide-react';
+import { Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -158,8 +158,13 @@ const Sidebar = ({
 
         {/* Histórico de Conversas */}
         <div className="flex-1 overflow-y-auto sidebar-scroll">
-          {isAuthenticated && !state.isCollapsed && (
-            <div className="px-4 sm:px-5 lg:px-4 py-2">
+          {/*
+            IMPORTANTE: Mantemos o ConversationHistory sempre montado quando autenticado
+            para evitar requisições duplicadas ao backend quando expandir/colapsar.
+            Usamos CSS (hidden) para esconder quando colapsado.
+          */}
+          {isAuthenticated && (
+            <div className={`px-4 sm:px-5 lg:px-4 py-2 ${state.isCollapsed ? 'hidden' : ''}`}>
               <div className="flex items-center gap-2 mb-3 px-1">
                 <Clock className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
                 <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -167,32 +172,12 @@ const Sidebar = ({
                 </h3>
               </div>
 
-              {/* Conversation History ou Skeleton */}
+              {/* Conversation History - sempre montado para preservar estado */}
               <ConversationHistory
                 onSelectSession={handleSelectSession}
                 currentSessionId={currentSessionId}
                 newSessionData={newSessionData}
               />
-            </div>
-          )}
-
-          {/* Indicador visual quando colapsado */}
-          {isAuthenticated && state.isCollapsed && (
-            <div className="flex flex-col items-center gap-2 px-2 py-4">
-              <motion.div
-                animate={{
-                  scale: [1, 1.2, 1],
-                  opacity: [1, 0.5, 1],
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
-                }}
-                className="w-1.5 h-1.5 rounded-full bg-primary-600 dark:bg-primary-400"
-              />
-              <div className="w-1 h-1 rounded-full bg-primary-500/50 dark:bg-primary-500/50" />
-              <div className="w-0.5 h-0.5 rounded-full bg-primary-400/30 dark:bg-primary-600/30" />
             </div>
           )}
         </div>

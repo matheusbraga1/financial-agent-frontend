@@ -1,16 +1,20 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 
 /**
  * Hook para gerenciar scroll inteligente no chat
  * - Auto-scroll apenas quando usuário está no bottom
  * - Badge de nova mensagem quando usuário scrollou acima
  * - Controle manual de scroll
+ * - Respeita quando usuário scrollou durante streaming
  */
 export const useSmartScroll = (messages, isStreaming, containerRef, messagesEndRef) => {
   const [userScrolled, setUserScrolled] = useState(false);
   const [showNewMessageBadge, setShowNewMessageBadge] = useState(false);
   const [newMessageCount, setNewMessageCount] = useState(0);
   const [autoScroll, setAutoScroll] = useState(true);
+
+  // Ref para rastrear última contagem de mensagens
+  const lastMessageCountRef = useRef(messages.length);
 
   /**
    * Detecta se usuário scrollou manualmente
@@ -24,61 +28,72 @@ export const useSmartScroll = (messages, isStreaming, containerRef, messagesEndR
     // Considera "no final" se está a menos de 100px do bottom
     const isNearBottom = distanceFromBottom < 100;
 
-    if (!isNearBottom && !userScrolled) {
+    // Usuário scrollou para cima
+    if (!isNearBottom) {
       setUserScrolled(true);
-    }
-
-    if (isNearBottom) {
+      setAutoScroll(false);
+      setShowNewMessageBadge(true);
+    } else {
+      // Usuário voltou para o final
       setUserScrolled(false);
+      setAutoScroll(true);
       setShowNewMessageBadge(false);
       setNewMessageCount(0);
     }
-
-    setAutoScroll(isNearBottom);
-  }, [userScrolled, containerRef]);
+  }, [containerRef]);
 
   /**
    * Scroll para o bottom
    */
   const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'end'
-    });
+    if (containerRef.current) {
+      containerRef.current.scrollTo({
+        top: containerRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
     setAutoScroll(true);
     setUserScrolled(false);
     setShowNewMessageBadge(false);
     setNewMessageCount(0);
-  }, [messagesEndRef]);
+  }, [containerRef]);
 
   /**
    * Auto-scroll quando novas mensagens chegam
    * Apenas se usuário não scrollou manualmente
    */
   useEffect(() => {
-    if (autoScroll && !userScrolled) {
+    const messageCountChanged = messages.length !== lastMessageCountRef.current;
+    lastMessageCountRef.current = messages.length;
+
+    // Só faz auto-scroll se:
+    // 1. O número de mensagens mudou (nova mensagem real)
+    // 2. autoScroll está ativo
+    // 3. Usuário não scrollou manualmente
+    if (messageCountChanged && autoScroll && !userScrolled) {
       messagesEndRef.current?.scrollIntoView({
         behavior: 'smooth',
         block: 'end'
       });
-    } else if (userScrolled && messages.length > 0) {
-      // Incrementa contador de novas mensagens
+    } else if (messageCountChanged && userScrolled) {
+      // Incrementa contador apenas para novas mensagens reais
       setNewMessageCount(prev => prev + 1);
       setShowNewMessageBadge(true);
     }
-  }, [messages, autoScroll, userScrolled, messagesEndRef]);
+  }, [messages.length, autoScroll, userScrolled, messagesEndRef]);
 
   /**
-   * Durante streaming, sempre auto-scroll
+   * Durante streaming, auto-scroll apenas se usuário não scrollou
+   * Usa behavior 'auto' para evitar conflitos com smooth scroll
    */
   useEffect(() => {
-    if (isStreaming && autoScroll) {
+    if (isStreaming && autoScroll && !userScrolled) {
       messagesEndRef.current?.scrollIntoView({
-        behavior: 'smooth',
+        behavior: 'auto',
         block: 'end'
       });
     }
-  }, [messages, isStreaming, autoScroll, messagesEndRef]);
+  }, [messages, isStreaming, autoScroll, userScrolled, messagesEndRef]);
 
   return {
     handleScroll,

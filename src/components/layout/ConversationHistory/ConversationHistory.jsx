@@ -4,6 +4,13 @@ import { MessageSquare, AlertCircle } from 'lucide-react';
 import { chatService } from '../../../features/chat/services';
 import { toast } from 'sonner';
 import ConversationItem from './ConversationItem';
+import HistorySkeleton from '../Sidebar/components/HistorySkeleton';
+import {
+  getCustomTitle,
+  setCustomTitle,
+  removeCustomTitle,
+  cleanupOrphanedTitles,
+} from '../../../services/storage';
 
 /**
  * Conversation History Premium da Financial
@@ -28,30 +35,37 @@ const ConversationHistory = ({
   const [hoveredSessionId, setHoveredSessionId] = useState(null);
   const [confirmDeleteSession, setConfirmDeleteSession] = useState(null);
   const [newlyAddedSessionId, setNewlyAddedSessionId] = useState(null);
+  // Estado para forçar re-render quando títulos customizados mudam
+  const [customTitlesVersion, setCustomTitlesVersion] = useState(0);
 
   // Ref para rastrear sessões já adicionadas (evitar duplicatas)
   const addedSessionIdsRef = useRef(new Set());
 
   useEffect(() => {
     loadSessions();
-  }, []);
+  }, [loadSessions]);
 
   /**
    * Carrega todas as sessões do backend
    * Marca todas como já adicionadas para evitar duplicatas
+   * Limpa títulos customizados órfãos
    */
   const loadSessions = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const data = await chatService.getUserSessions();
-      setSessions(data);
+      const response = await chatService.getUserSessions();
+      // getUserSessions retorna { sessions: Array, total, limit, offset, has_more }
+      const sessionsList = response.sessions || [];
+      setSessions(sessionsList);
 
       // Marca todas as sessões carregadas como já adicionadas
-      data.forEach(session => {
-        addedSessionIdsRef.current.add(session.session_id);
-      });
+      const sessionIds = sessionsList.map(session => session.session_id);
+      sessionIds.forEach(id => addedSessionIdsRef.current.add(id));
+
+      // Limpa títulos customizados de sessões que não existem mais
+      cleanupOrphanedTitles(sessionIds);
     } catch (err) {
       console.error('Erro ao carregar sessões:', err);
       setError('Não foi possível carregar o histórico');
@@ -122,6 +136,9 @@ const ConversationHistory = ({
       // Remove do Set de controle
       addedSessionIdsRef.current.delete(sessionId);
 
+      // Remove título customizado se existir
+      removeCustomTitle(sessionId);
+
       // Se era a sessão atual, limpa seleção
       if (sessionId === currentSessionId) {
         onSelectSession?.(null);
@@ -134,24 +151,26 @@ const ConversationHistory = ({
     }
   }, [confirmDeleteSession, currentSessionId, onSelectSession]);
 
-  // Loading state premium
+  /**
+   * Handler: Renomear sessão (título customizado local)
+   * @param {string} sessionId - ID da sessão
+   * @param {string|null} newTitle - Novo título (null para remover)
+   */
+  const handleRenameSession = useCallback((sessionId, newTitle) => {
+    if (newTitle) {
+      setCustomTitle(sessionId, newTitle);
+      toast.success('Título atualizado');
+    } else {
+      removeCustomTitle(sessionId);
+      toast.success('Título restaurado');
+    }
+    // Força re-render para atualizar os títulos
+    setCustomTitlesVersion(v => v + 1);
+  }, []);
+
+  // Loading state com skeleton
   if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 px-4">
-        <div className="relative">
-          <div className="w-16 h-16 rounded-full border-4 border-primary-100 dark:border-primary-900/30 border-t-primary-600 dark:border-t-primary-400 animate-spin" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <MessageSquare className="w-6 h-6 text-primary-600 dark:text-primary-400" />
-          </div>
-        </div>
-        <p className="mt-4 text-sm font-medium text-gray-700 dark:text-gray-300">
-          Carregando histórico...
-        </p>
-        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-          Aguarde um momento
-        </p>
-      </div>
-    );
+    return <HistorySkeleton count={5} />;
   }
 
   // Error state premium
@@ -203,21 +222,27 @@ const ConversationHistory = ({
     <>
       <div className="space-y-1.5">
         {sessions.map((session) => {
-          const isActive = session.session_id === currentSessionId;
-          const isDeleting = deletingSessionId === session.session_id;
-          const isHovered = hoveredSessionId === session.session_id;
-          const enableTyping = session.session_id === newlyAddedSessionId;
+          // Normaliza IDs para string para garantir comparação consistente
+          const sessionId = String(session.session_id || '');
+          const isActive = currentSessionId && sessionId === String(currentSessionId);
+          const isDeleting = deletingSessionId && sessionId === String(deletingSessionId);
+          const isHovered = hoveredSessionId && sessionId === String(hoveredSessionId);
+          const enableTyping = newlyAddedSessionId && sessionId === String(newlyAddedSessionId);
+          // Obtém título customizado do localStorage (usa customTitlesVersion para reatividade)
+          const customTitle = customTitlesVersion >= 0 ? getCustomTitle(sessionId) : null;
 
           return (
             <ConversationItem
               key={session.session_id}
               session={session}
+              customTitle={customTitle}
               isActive={isActive}
               isDeleting={isDeleting}
               isHovered={isHovered}
               enableTyping={enableTyping}
               onSelect={() => onSelectSession?.(session.session_id)}
               onDelete={() => handleDeleteSession(session.session_id)}
+              onRename={handleRenameSession}
               onMouseEnter={() => setHoveredSessionId(session.session_id)}
               onMouseLeave={() => setHoveredSessionId(null)}
             />

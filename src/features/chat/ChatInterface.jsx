@@ -7,8 +7,6 @@ import {
   ChatInput,
   EmptyState,
   ErrorMessage,
-  LoadingIndicator,
-  TypingIndicator,
   MessageSkeleton,
 } from './components';
 
@@ -141,7 +139,6 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated, onFi
 
   // Determina se deve mostrar layout centrado (sem mensagens)
   const isEmpty = messages.length === 0 && !isLoading;
-  const hasContent = messages.length > 0 || isLoading;
 
   return (
     <div className="flex flex-col h-full min-h-screen bg-gray-50 dark:bg-dark-bg relative">
@@ -167,15 +164,16 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated, onFi
           </div>
         </div>
       ) : (
-        /* Layout Normal - Com Mensagens */
-        <div className="flex flex-col h-full min-h-screen">
-          {/* Container de mensagens - Responsivo com scroll inteligente */}
+        /* Layout Normal - Com Mensagens (Input Flutuante estilo Claude) */
+        <div className="relative flex flex-col h-full min-h-screen">
+          {/* Container de mensagens - Scroll passa por baixo do input */}
           <div
             ref={containerRef}
             onScroll={handleScroll}
-            className="flex-1 overflow-y-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 scroll-smooth animate-fade-in"
+            className="flex-1 overflow-y-auto px-3 sm:px-4 md:px-6 pt-4 sm:pt-6 scroll-smooth animate-fade-in"
           >
-            <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8 pb-4">
+            {/* Padding bottom para compensar o input flutuante */}
+            <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8 pb-32 sm:pb-36 md:pb-40">
               {messages.map((message, index) => {
                 // Detectar se é a última mensagem do assistente e está streamando
                 const isLastAssistantMessage =
@@ -193,14 +191,6 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated, onFi
                 );
               })}
 
-              {/* Typing indicator quando agente está processando */}
-              {isLoading && messages.length > 0 && messages[messages.length - 1]?.type !== 'assistant' && (
-                <TypingIndicator />
-              )}
-
-              {/* Typing indicator ao iniciar conversa */}
-              {isLoading && messages.length === 0 && <TypingIndicator />}
-
               {/* Mensagens de erro */}
               {error && <ErrorMessage message={error} />}
 
@@ -209,25 +199,19 @@ const ChatInterface = ({ sessionId, forceNewConversation, onSessionCreated, onFi
             </div>
           </div>
 
-          {/* Botão Scroll to Bottom com badge de novas mensagens */}
+          {/* Botão Scroll to Bottom - Estilo Claude */}
           {showNewMessageBadge && (
             <button
               onClick={scrollToBottom}
-              className="fixed bottom-24 sm:bottom-28 right-6 sm:right-8 z-20 p-3 bg-white dark:bg-dark-card border-2 border-primary-500 dark:border-primary-400 rounded-full shadow-lg hover:shadow-xl hover:scale-110 active:scale-95 transition-all duration-200 group"
-              aria-label={`${newMessageCount} nova${newMessageCount > 1 ? 's' : ''} mensagem${newMessageCount > 1 ? 'ns' : ''}`}
+              className="absolute bottom-32 sm:bottom-36 left-1/2 -translate-x-1/2 z-30 p-1.5 bg-white dark:bg-dark-card border border-primary-200 dark:border-primary-800 rounded-full shadow-sm hover:shadow-md hover:bg-primary-50 dark:hover:bg-primary-900/20 active:scale-95 transition-all duration-150"
+              aria-label="Ir para o final"
             >
-              {/* Badge com contagem */}
-              {newMessageCount > 0 && (
-                <span className="absolute -top-2 -right-2 min-w-[24px] h-6 px-1.5 bg-primary-600 dark:bg-primary-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-md animate-bounce">
-                  {newMessageCount > 9 ? '9+' : newMessageCount}
-                </span>
-              )}
-              <ArrowDown className="w-5 h-5 text-primary-600 dark:text-primary-400 group-hover:translate-y-0.5 transition-transform" />
+              <ArrowDown className="w-4 h-4 text-primary-600 dark:text-primary-400" />
             </button>
           )}
 
-          {/* Input de mensagens - Flutuante no Bottom */}
-          <div className="flex-shrink-0 px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6 pb-safe">
+          {/* Input de mensagens - Flutuante com transparência real */}
+          <div className="absolute bottom-0 left-0 right-0 z-20 px-3 sm:px-4 md:px-6 pb-3 sm:pb-4 pb-safe">
             <div className="max-w-4xl mx-auto">
               <ChatInput
                 onSendMessage={sendMessage}

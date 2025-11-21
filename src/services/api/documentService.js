@@ -16,7 +16,7 @@ class DocumentService {
    * @param {string} [params.category] - Categoria (padrão: "Documento")
    * @param {string} [params.department] - Departamento
    * @param {Array<string>|string} [params.tags] - Tags
-   * @returns {Promise<{chunks_processed: number, document_ids: Array<string>, status: string, message: string}>}
+   * @returns {Promise<{message: string, chunks_processed: number, chunks_failed: number, document_ids: Array<string>}>}
    */
   async ingestDocument({ title, content, category, department, tags }) {
     try {
@@ -64,11 +64,11 @@ class DocumentService {
   /**
    * Faz upload de um arquivo de documento (somente admin)
    * @param {Object} params - Parâmetros do upload
-   * @param {File} params.file - Arquivo (.txt, .md, .pdf)
+   * @param {File} params.file - Arquivo (.txt, .md, .pdf, .docx)
    * @param {string} [params.category] - Categoria
    * @param {string} [params.department] - Departamento
    * @param {Array<string>|string} [params.tags] - Tags
-   * @returns {Promise<{filename: string, chunks_processed: number, document_ids: Array<string>, status: string, message: string}>}
+   * @returns {Promise<{message: string, filename: string, chunks_processed: number, chunks_failed: number, document_ids: Array<string>}>}
    */
   async uploadDocument({ file, category, department, tags }) {
     try {
@@ -114,7 +114,7 @@ class DocumentService {
 
   /**
    * Busca estatísticas da coleção de documentos (somente admin)
-   * @returns {Promise<{collection_name: string, total_documents: number, indexed_documents: number, status: string}>}
+   * @returns {Promise<{collection: string, total_documents: number, indexed_documents: number, status: string}>}
    */
   async getStats() {
     try {
