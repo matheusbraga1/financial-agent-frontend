@@ -10,13 +10,16 @@ import ConversationItem from './ConversationItem';
  * Histórico de Conversas
  * Usa navigate para navegação por rotas
  */
+const CUSTOM_TITLES_STORAGE_KEY = 'financial_agent_custom_titles';
+
 const ConversationHistory = ({
   currentSessionId,
   newSessionData,
+  onSelectSession,
   onCloseSidebar,
 }) => {
   const navigate = useNavigate();
-  
+
   const [sessions, setSessions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -24,6 +27,14 @@ const ConversationHistory = ({
   const [hoveredSessionId, setHoveredSessionId] = useState(null);
   const [confirmDeleteSession, setConfirmDeleteSession] = useState(null);
   const [newlyAddedSessionId, setNewlyAddedSessionId] = useState(null);
+  const [customTitles, setCustomTitles] = useState(() => {
+    try {
+      const stored = localStorage.getItem(CUSTOM_TITLES_STORAGE_KEY);
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  });
 
   const addedSessionIdsRef = useRef(new Set());
 
@@ -92,12 +103,18 @@ const ConversationHistory = ({
   }, [newSessionData]);
 
   /**
-   * Seleciona sessão - navega por rota
+   * Seleciona sessão - usa callback do pai se disponível
    */
   const handleSelectSession = useCallback((sessionId) => {
-    navigate(`/chat/${sessionId}`);
-    onCloseSidebar?.();
-  }, [navigate, onCloseSidebar]);
+    if (onSelectSession) {
+      // Usa o callback do pai (Chat.jsx) que atualiza conversationKey
+      onSelectSession(sessionId);
+    } else {
+      // Fallback: navega diretamente
+      navigate(`/chat/${sessionId}`);
+      onCloseSidebar?.();
+    }
+  }, [onSelectSession, navigate, onCloseSidebar]);
 
   /**
    * Abre modal de confirmação de delete
@@ -123,6 +140,18 @@ const ConversationHistory = ({
       setSessions(prev => prev.filter(s => s.session_id !== sessionId));
       addedSessionIdsRef.current.delete(sessionId);
 
+      // Remove título customizado se existir
+      setCustomTitles(prev => {
+        const updated = { ...prev };
+        delete updated[sessionId];
+        try {
+          localStorage.setItem(CUSTOM_TITLES_STORAGE_KEY, JSON.stringify(updated));
+        } catch (err) {
+          console.error('Erro ao remover título:', err);
+        }
+        return updated;
+      });
+
       // Se deletou a sessão atual, navega para /chat
       if (sessionId === currentSessionId) {
         navigate('/chat');
@@ -137,6 +166,30 @@ const ConversationHistory = ({
 
   const cancelDelete = useCallback(() => {
     setConfirmDeleteSession(null);
+  }, []);
+
+  /**
+   * Renomeia uma conversa (salva título customizado)
+   */
+  const handleRename = useCallback((sessionId, newTitle) => {
+    setCustomTitles(prev => {
+      const updated = { ...prev };
+
+      if (newTitle === null || newTitle === undefined) {
+        delete updated[sessionId];
+      } else {
+        updated[sessionId] = newTitle;
+      }
+
+      // Persiste no localStorage
+      try {
+        localStorage.setItem(CUSTOM_TITLES_STORAGE_KEY, JSON.stringify(updated));
+      } catch (err) {
+        console.error('Erro ao salvar título:', err);
+      }
+
+      return updated;
+    });
   }, []);
 
   // Loading
@@ -189,13 +242,9 @@ const ConversationHistory = ({
         <p className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-2">
           Nenhuma conversa ainda
         </p>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+        <p className="text-sm text-gray-500 dark:text-gray-400">
           Inicie uma nova conversa para começar
         </p>
-        <div className="flex items-center gap-2 text-xs text-primary-600 dark:text-primary-400">
-          <div className="w-1.5 h-1.5 rounded-full bg-primary-500 animate-pulse" />
-          <span>Suas conversas serão salvas automaticamente</span>
-        </div>
       </div>
     );
   }
@@ -216,12 +265,14 @@ const ConversationHistory = ({
             <ConversationItem
               key={session.session_id}
               session={session}
+              customTitle={customTitles[session.session_id] || null}
               isActive={isActive}
               isDeleting={isDeleting}
               isHovered={isHovered}
               enableTyping={enableTyping}
               onSelect={() => handleSelectSession(session.session_id)}
               onDelete={() => handleDeleteSession(session.session_id)}
+              onRename={handleRename}
               onMouseEnter={() => setHoveredSessionId(session.session_id)}
               onMouseLeave={() => setHoveredSessionId(null)}
             />
@@ -280,12 +331,14 @@ ConversationHistory.propTypes = {
     sessionId: PropTypes.string.isRequired,
     firstMessage: PropTypes.string,
   }),
+  onSelectSession: PropTypes.func,
   onCloseSidebar: PropTypes.func,
 };
 
 ConversationHistory.defaultProps = {
   currentSessionId: null,
   newSessionData: null,
+  onSelectSession: null,
   onCloseSidebar: null,
 };
 

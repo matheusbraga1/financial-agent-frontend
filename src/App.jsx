@@ -3,6 +3,7 @@ import { Toaster } from 'sonner';
 import { AnimatePresence } from 'framer-motion';
 import { ErrorBoundary } from './components/common';
 import { AuthProvider } from './contexts/AuthContext';
+import { StreamProvider } from './contexts/StreamContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import PublicRoute from './components/auth/PublicRoute';
 
@@ -154,7 +155,9 @@ function App() {
     <ErrorBoundary showDetails={import.meta.env.DEV}>
       <Router>
         <AuthProvider>
-          <AnimatedRoutes />
+          <StreamProvider>
+            <AnimatedRoutes />
+          </StreamProvider>
         </AuthProvider>
       </Router>
     </ErrorBoundary>

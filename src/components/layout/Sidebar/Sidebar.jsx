@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -23,6 +22,7 @@ const Sidebar = ({
   isOpen,
   onClose,
   currentSessionId,
+  onSelectSession,
   onNewConversation,
   newSessionData,
 }) => {
@@ -120,8 +120,9 @@ const Sidebar = ({
           ${state.isCollapsed ? 'w-16' : 'w-72 sm:w-80 lg:w-72'}
           bg-white dark:bg-dark-card
           border-r border-gray-200 dark:border-dark-border
-          flex flex-col overflow-hidden
-          transition-all duration-300 ease-in-out
+          flex flex-col
+          overflow-hidden overflow-x-hidden
+          transition-all duration-500 ease-in-out
           shadow-2xl lg:shadow-none
         `}
         aria-label="Menu lateral"
@@ -141,44 +142,34 @@ const Sidebar = ({
         />
 
         {/* Histórico */}
-        <div className="flex-1 overflow-y-auto sidebar-scroll">
-          {isAuthenticated && !state.isCollapsed && (
-            <div className="px-4 sm:px-5 lg:px-4 py-2">
-              <div className="flex items-center gap-2 mb-3 px-1">
-                <Clock className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
-                <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Histórico
-                </h3>
+        <div className={`overflow-hidden mt-4 w-full transition-all duration-500 ease-in-out ${state.isCollapsed ? 'h-0 opacity-0' : 'flex-1 opacity-100'}`}>
+          {isAuthenticated && (
+            <div className="h-full flex flex-col pl-3 pr-0 py-2 w-full">
+              <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400 px-2 mb-2 flex-shrink-0">
+                Seus chats
+              </h3>
+              <div className="flex-1 overflow-y-auto overflow-x-hidden sidebar-scroll w-full pr-2">
+                <ConversationHistory
+                  currentSessionId={currentSessionId}
+                  newSessionData={newSessionData}
+                  onSelectSession={onSelectSession}
+                  onCloseSidebar={handleCloseSidebar}
+                />
               </div>
-
-              <ConversationHistory
-                currentSessionId={currentSessionId}
-                newSessionData={newSessionData}
-                onCloseSidebar={handleCloseSidebar}
-              />
-            </div>
-          )}
-
-          {/* Indicador quando colapsado */}
-          {isAuthenticated && state.isCollapsed && (
-            <div className="flex flex-col items-center gap-2 px-2 py-4">
-              <motion.div
-                animate={{ scale: [1, 1.2, 1], opacity: [1, 0.5, 1] }}
-                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                className="w-1.5 h-1.5 rounded-full bg-primary-600 dark:bg-primary-400"
-              />
-              <div className="w-1 h-1 rounded-full bg-primary-500/50" />
-              <div className="w-0.5 h-0.5 rounded-full bg-primary-400/30" />
             </div>
           )}
         </div>
 
+        {/* Spacer - empurra User Menu para o footer quando colapsado */}
+        <div className={`transition-all duration-500 ease-in-out ${state.isCollapsed ? 'flex-1' : 'h-0'}`} />
+
         {/* User Menu */}
-        <div className={`
-          flex-shrink-0 ${state.isCollapsed ? 'px-2 py-3' : 'px-4 sm:px-5 lg:px-4 py-3 sm:py-4'}
+        <div className="
+          flex-shrink-0 w-full
+          px-3 py-3
           border-t border-gray-200 dark:border-dark-border
           bg-gradient-to-t from-gray-50/50 to-transparent dark:from-dark-bg/50
-        `}>
+        ">
           <SidebarUserMenu
             user={user}
             isAuthenticated={isAuthenticated}
@@ -221,6 +212,7 @@ Sidebar.propTypes = {
   isOpen: PropTypes.bool,
   onClose: PropTypes.func,
   currentSessionId: PropTypes.string,
+  onSelectSession: PropTypes.func,
   onNewConversation: PropTypes.func,
   newSessionData: PropTypes.shape({
     sessionId: PropTypes.string.isRequired,

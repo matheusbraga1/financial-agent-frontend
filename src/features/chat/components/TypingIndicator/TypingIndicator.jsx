@@ -1,11 +1,50 @@
+import { useState, useEffect } from 'react';
 import { Bot } from 'lucide-react';
 import { AGENT_NAME } from '../../constants/chatConstants';
 
 /**
- * TypingIndicator - Indicador profissional de que o agente está digitando
- * Similar ao ChatGPT/Claude
+ * TypingIndicator - Indicador de que o agente está processando
+ * Mostra palavras alternadas com efeito de digitação
  */
 const TypingIndicator = () => {
+  const [currentWordIndex, setCurrentWordIndex] = useState(0);
+  const [displayedText, setDisplayedText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const words = ['Pensando', 'Analisando', 'Processando', 'Escrevendo'];
+
+  useEffect(() => {
+    const currentWord = words[currentWordIndex];
+    const typingSpeed = 50;
+    const deletingSpeed = 30;
+    const pauseTime = 1500;
+
+    let timeout;
+
+    if (!isDeleting) {
+      if (displayedText.length < currentWord.length) {
+        timeout = setTimeout(() => {
+          setDisplayedText(currentWord.substring(0, displayedText.length + 1));
+        }, typingSpeed);
+      } else {
+        timeout = setTimeout(() => {
+          setIsDeleting(true);
+        }, pauseTime);
+      }
+    } else {
+      if (displayedText.length > 0) {
+        timeout = setTimeout(() => {
+          setDisplayedText(displayedText.substring(0, displayedText.length - 1));
+        }, deletingSpeed);
+      } else {
+        setIsDeleting(false);
+        setCurrentWordIndex((prev) => (prev + 1) % words.length);
+      }
+    }
+
+    return () => clearTimeout(timeout);
+  }, [displayedText, isDeleting, currentWordIndex, words]);
+
   return (
     <div className="group flex justify-start animate-fade-in w-full" role="status" aria-label="Agente está digitando">
       <div className="w-full max-w-3xl">
@@ -15,22 +54,12 @@ const TypingIndicator = () => {
           <span className="font-medium">{AGENT_NAME}</span>
         </div>
 
-        {/* Pontos animados */}
-        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-          <div className="flex gap-1.5 px-4 py-3 bg-gray-100 dark:bg-dark-hover rounded-2xl">
-            <span
-              className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce"
-              style={{ animationDelay: '0ms', animationDuration: '1s' }}
-            />
-            <span
-              className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce"
-              style={{ animationDelay: '150ms', animationDuration: '1s' }}
-            />
-            <span
-              className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce"
-              style={{ animationDelay: '300ms', animationDuration: '1s' }}
-            />
-          </div>
+        {/* Texto com efeito de digitação */}
+        <div className="inline-flex items-center">
+          <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+            {displayedText}
+            <span className="inline-block w-0.5 h-4 bg-gray-500 dark:bg-gray-400 ml-0.5 animate-blink align-middle" />
+          </span>
         </div>
       </div>
     </div>

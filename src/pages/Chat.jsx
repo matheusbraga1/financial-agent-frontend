@@ -19,57 +19,89 @@ const Chat = () => {
   // Obtém sessionId da URL (undefined se /chat, string se /chat/:sessionId)
   const { sessionId: urlSessionId } = useParams();
   const navigate = useNavigate();
-  
+
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showGuestBanner, setShowGuestBanner] = useState(() => {
     return localStorage.getItem('guestBannerDismissed') !== 'true';
   });
   const [newSessionData, setNewSessionData] = useState(null);
 
-  const { isAuthenticated } = useAuth();
+  // Key para controlar remontagem - independente da URL
+  // Só muda quando usuário explicitamente inicia nova conversa ou troca de conversa
+  const [conversationKey, setConversationKey] = useState(() => Date.now());
+
+  // Índice para alternar textos de saudação no EmptyState
+  const [greetingIndex, setGreetingIndex] = useState(0);
+
+  const { isAuthenticated, user } = useAuth();
 
   // Ref para rastrear primeira mensagem da sessão (para typing effect no sidebar)
   const sessionFirstMessageRef = useRef(new Map());
 
   /**
    * Handler: Nova conversa
-   * Navega para /chat (sem sessionId)
+   * Navega para /chat (sem sessionId) e gera nova key para forçar remontagem
    */
   const handleNewConversation = useCallback(() => {
     // Limpa dados de nova sessão
     setNewSessionData(null);
+
+    // Gera nova key para forçar remontagem (nova conversa)
+    setConversationKey(Date.now());
+
+    // Se já está em /chat, apenas atualiza saudação
+    if (!urlSessionId) {
+      setGreetingIndex(prev => prev + 1);
+      setIsSidebarOpen(false);
+      return;
+    }
+
     // Navega para /chat (nova conversa)
     navigate('/chat');
     // Fecha sidebar em mobile
     setIsSidebarOpen(false);
-  }, [navigate]);
+  }, [navigate, urlSessionId]);
 
   /**
    * Handler: Selecionar sessão existente
-   * Navega para /chat/:sessionId
+   * Navega para /chat/:sessionId e gera nova key para forçar remontagem
    */
   const handleSelectSession = useCallback((sessionId) => {
     if (!sessionId) {
       navigate('/chat');
+      setConversationKey(Date.now());
       return;
     }
+
+    // Se já estamos nessa conversa, apenas fecha sidebar
+    if (urlSessionId === sessionId) {
+      setIsSidebarOpen(false);
+      return;
+    }
+
+    // Gera nova key para forçar remontagem (conversa diferente)
+    setConversationKey(Date.now());
     // Navega para a conversa específica
     navigate(`/chat/${sessionId}`);
     // Fecha sidebar em mobile
     setIsSidebarOpen(false);
-  }, [navigate]);
+  }, [navigate, urlSessionId]);
 
   /**
-   * Handler: Sessão criada pelo backend (nova conversa iniciada)
-   * Atualiza a URL para refletir o novo sessionId
+   * Handler: Sessão criada pelo backend
+   *
+   * Chamado quando o backend retorna o sessionId real via SSE.
+   * Navega de /chat para /chat/sessionId após receber o ID.
    */
   const handleSessionCreated = useCallback((sessionId) => {
     if (!sessionId) return;
-    // Se ainda está em /chat (nova conversa), atualiza URL para /chat/:sessionId
-    // Usa replace para não poluir o histórico
-    if (!urlSessionId) {
-      navigate(`/chat/${sessionId}`, { replace: true });
-    }
+
+    // Se já está na URL correta, não faz nada
+    if (urlSessionId === sessionId) return;
+
+    // Navega para a URL com sessionId (replace para não poluir histórico)
+    // conversationKey permanece inalterado, não há remontagem do ChatInterface
+    navigate(`/chat/${sessionId}`, { replace: true });
   }, [navigate, urlSessionId]);
 
   /**
@@ -189,10 +221,12 @@ const Chat = () => {
           </div>
         )}
 
-        {/* Interface de chat - key força remontagem quando sessionId muda */}
+        {/* Interface de chat - key força remontagem apenas quando troca de conversa */}
         <ChatInterface
-          key={urlSessionId || 'new-conversation'}
+          key={conversationKey}
           sessionId={urlSessionId || null}
+          greetingIndex={greetingIndex}
+          userName={user?.username || user?.email || null}
           onSessionCreated={handleSessionCreated}
           onFirstMessage={handleFirstMessage}
         />

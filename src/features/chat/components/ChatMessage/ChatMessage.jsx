@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, memo, useMemo, useCallback } from 'react';
 import PropTypes from 'prop-types';
-import { Bot, User, Copy, Check, ThumbsUp, ThumbsDown, MessageCircle } from 'lucide-react';
+import { Bot, Copy, Check } from 'lucide-react';
 import { useMessageActions } from '../../hooks';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -12,13 +12,13 @@ import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import SourcesList from '../SourcesList';
 import ThinkingIndicator from '../ThinkingIndicator';
 import { MESSAGE_TYPES, AGENT_NAME } from '../../constants/chatConstants';
+import { useAuth } from '../../../../contexts/AuthContext';
+import { UserAvatar } from '../../../../components/common';
 
-const ChatMessage = memo(({ message, isStreaming = false, onFeedback, feedbackState }) => {
+const ChatMessage = memo(({ message, isStreaming = false, isLoading = false }) => {
   const isUser = message?.type === MESSAGE_TYPES.USER;
   const { copied, handleCopy } = useMessageActions(message);
-  const [isCommentOpen, setIsCommentOpen] = useState(false);
-  const [commentText, setCommentText] = useState('');
-  const [commentTone, setCommentTone] = useState('negative');
+  const { user } = useAuth();
 
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return '';
@@ -205,39 +205,28 @@ const ChatMessage = memo(({ message, isStreaming = false, onFeedback, feedbackSt
     );
   };
 
-  const handleFeedbackClick = async (value) => {
-    if (!message?.messageId || !onFeedback) return;
-    await onFeedback(message.messageId, value);
-  };
-
-  const handleCommentSubmit = async () => {
-    if (!commentText?.trim() || !message?.messageId || !onFeedback) return;
-    await onFeedback(message.messageId, commentTone, commentText.trim());
-    setCommentText('');
-    setIsCommentOpen(false);
-  };
-
-  // Mensagem do usuÃ¡rio - com balÃ£o
+  // Mensagem do usuário - com balão
   if (isUser) {
     return (
       <div className="group flex justify-end animate-fade-in">
-        <div className="max-w-[80%] rounded-lg p-3 shadow-sm relative bg-primary-600 text-white">
+        <div className="max-w-[75%] rounded-lg p-3 shadow-sm relative bg-primary-600 text-white">
           {/* Header: Avatar + Timestamp */}
-          <div className="flex items-center justify-between gap-2 mb-1 text-xs opacity-70">
+          <div className="flex items-center justify-between gap-2 mb-2">
             <div className="flex items-center gap-2">
-              <User className="w-4 h-4" />
+              <UserAvatar user={user} size="xs" />
+              <span className="text-xs font-medium opacity-90">Você</span>
             </div>
             {message?.timestamp && (
-              <span className="text-xs">{formatTimestamp(message.timestamp)}</span>
+              <span className="text-xs opacity-70">{formatTimestamp(message.timestamp)}</span>
             )}
           </div>
 
-          {/* ConteÃºdo */}
+          {/* Conteúdo */}
           <div className="max-w-none break-words">
             {renderMarkdownContent(message?.content)}
           </div>
 
-          {/* BotÃ£o Copy */}
+          {/* Botão Copy */}
           <button
             onClick={handleCopy}
             className="absolute top-2 right-2 p-1.5 rounded-md transition-all opacity-0 group-hover:opacity-100 bg-primary-700 hover:bg-primary-800"
@@ -271,21 +260,29 @@ const ChatMessage = memo(({ message, isStreaming = false, onFeedback, feedbackSt
         </div>
 
         <div className="relative">
-          <div className="max-w-none break-words text-gray-900 dark:text-gray-100">
+          <div className="max-w-none break-words text-gray-900 dark:text-gray-100 transition-all duration-200">
             {message?.content ? (
               <>
-                {renderMarkdownContent(message.content)}
-                {isStreaming && (
-                  <span className="inline-block w-1.5 h-5 bg-primary-600 dark:bg-primary-500 ml-0.5 animate-blink align-middle" />
+                {message?.isInterrupted ? (
+                  <span className="text-gray-500 dark:text-gray-400 italic text-sm">
+                    {message.content}
+                  </span>
+                ) : (
+                  <>
+                    {renderMarkdownContent(message.content)}
+                    {isStreaming && (
+                      <span className="inline-block w-1.5 h-5 bg-primary-600 dark:bg-primary-500 ml-0.5 animate-blink align-middle transition-all duration-150" />
+                    )}
+                  </>
                 )}
               </>
-            ) : (
-              <ThinkingIndicator />
-            )}
+            ) : (isLoading || isStreaming) ? (
+              <ThinkingIndicator inline />
+            ) : null}
           </div>
 
-          {/* Botão copiar - só aparece quando há conteúdo */}
-          {message?.content && (
+          {/* Botão copiar - só aparece quando há conteúdo e não foi interrompida */}
+          {message?.content && !message?.isInterrupted && (
             <button
               onClick={handleCopy}
               className="absolute top-2 right-2 p-1.5 rounded-md transition-all opacity-0 group-hover:opacity-100 bg-gray-100 dark:bg-dark-hover hover:bg-gray-200 dark:hover:bg-primary-900/30"
@@ -301,141 +298,30 @@ const ChatMessage = memo(({ message, isStreaming = false, onFeedback, feedbackSt
           )}
         </div>
 
-        {(message?.sources?.length > 0 || (message?.messageId && onFeedback)) && (
-          <div className="mt-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            <div className="flex items-center gap-1">
-              {/* Ícone de fontes consultadas */}
-              {message?.sources?.length > 0 && <SourcesList sources={message.sources} />}
-
-              {/* Botões de feedback */}
-              {message?.messageId && onFeedback && (
-                <>
-              <button
-                type="button"
-                disabled={feedbackState?.submitting}
-                onClick={() => handleFeedbackClick('positive')}
-                className={`p-2 rounded-md transition-colors ${
-                  feedbackState?.value === 'positive'
-                    ? 'text-green-600 bg-green-50 dark:bg-green-900/20'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20'
-                }`}
-                title="Útil"
-                aria-label="Resposta útil"
-              >
-                <ThumbsUp className="w-4 h-4" />
-              </button>
-
-              <button
-                type="button"
-                disabled={feedbackState?.submitting}
-                onClick={() => handleFeedbackClick('negative')}
-                className={`p-2 rounded-md transition-colors ${
-                  feedbackState?.value === 'negative'
-                    ? 'text-red-600 bg-red-50 dark:bg-red-900/20'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20'
-                }`}
-                title="Melhorar"
-                aria-label="Resposta precisa melhorar"
-              >
-                <ThumbsDown className="w-4 h-4" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setIsCommentOpen((prev) => !prev)}
-                className="p-2 rounded-md text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-dark-hover transition-colors"
-                title="Adicionar comentário"
-                aria-label="Adicionar comentário"
-              >
-                <MessageCircle className="w-4 h-4" />
-              </button>
-
-              {feedbackState?.submitted && (
-                <span className="ml-auto text-xs text-primary-600 dark:text-primary-400 font-medium">
-                  ✓ Obrigado!
-                </span>
-              )}
-              {feedbackState?.error && (
-                <span className="ml-auto text-xs text-red-600 dark:text-red-400">
-                  Erro
-                </span>
-              )}
-                </>
-              )}
-            </div>
-
-            {isCommentOpen && message?.messageId && onFeedback && (
-              <div className="mt-3 space-y-2">
-                <div className="flex items-center gap-3 text-xs">
-                  <label className="font-medium text-gray-600 dark:text-gray-300">
-                    Tom:
-                  </label>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      className={`px-2 py-0.5 rounded ${
-                        commentTone === 'positive'
-                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30'
-                          : 'bg-gray-100 text-gray-600 dark:bg-dark-hover dark:text-gray-300'
-                      }`}
-                      onClick={() => setCommentTone('positive')}
-                    >
-                      Positivo
-                    </button>
-                    <button
-                      type="button"
-                      className={`px-2 py-0.5 rounded ${
-                        commentTone === 'negative'
-                          ? 'bg-red-100 text-red-700 dark:bg-red-900/30'
-                          : 'bg-gray-100 text-gray-600 dark:bg-dark-hover dark:text-gray-300'
-                      }`}
-                      onClick={() => setCommentTone('negative')}
-                    >
-                      Negativo
-                    </button>
-                  </div>
-                </div>
-                <textarea
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  rows={2}
-                  className="w-full rounded-md border border-gray-200 dark:border-dark-border bg-white dark:bg-dark-bg text-sm text-gray-800 dark:text-gray-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-500/40"
-                  placeholder="Compartilhe detalhes para aprimorarmos as respostas..."
-                />
-                <div className="flex justify-end gap-2 text-sm">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsCommentOpen(false);
-                      setCommentText('');
-                    }}
-                    className="px-3 py-1.5 rounded-md border border-gray-200 dark:border-dark-border text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-hover"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="button"
-                    disabled={!commentText.trim()}
-                    onClick={handleCommentSubmit}
-                    className="px-3 py-1.5 rounded-md bg-primary-600 text-white font-medium hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Enviar
-                  </button>
-                </div>
-              </div>
-            )}
+        {/* Fontes - sempre visível quando existir */}
+        {!message?.isInterrupted && message?.sources?.length > 0 && (
+          <div className="mt-3">
+            <SourcesList sources={message.sources} />
           </div>
         )}
       </div>
     </div>
   );
 }, (prevProps, nextProps) => {
-  // Memo comparison: só re-renderiza se essas props mudarem
+  // Durante streaming, sempre re-renderiza para mostrar tokens chegando
+  if (prevProps.isStreaming || nextProps.isStreaming) {
+    return false; // Força re-render durante streaming
+  }
+
+  // Durante loading, sempre re-renderiza
+  if (prevProps.isLoading || nextProps.isLoading) {
+    return false; // Força re-render durante loading
+  }
+
+  // Fora de streaming/loading, otimiza comparando props relevantes
   return (
     prevProps.message.id === nextProps.message.id &&
-    prevProps.message.content === nextProps.message.content &&
-    prevProps.isStreaming === nextProps.isStreaming &&
-    prevProps.feedbackState === nextProps.feedbackState
+    prevProps.message.content === nextProps.message.content
   );
 });
 
@@ -454,8 +340,7 @@ ChatMessage.propTypes = {
     ),
   }).isRequired,
   isStreaming: PropTypes.bool,
-  onFeedback: PropTypes.func,
-  feedbackState: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+  isLoading: PropTypes.bool,
 };
 
 ChatMessage.displayName = 'ChatMessage';

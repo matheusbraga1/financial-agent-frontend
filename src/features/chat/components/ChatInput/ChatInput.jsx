@@ -22,6 +22,7 @@ import {
 const ChatInput = ({ onSendMessage, onStopGeneration, isLoading, isStreaming }) => {
   const [input, setInput] = useState('');
   const [isFocused, setIsFocused] = useState(false);
+  const [isCanceling, setIsCanceling] = useState(false);
   const textareaRef = useRef(null);
 
   // Auto-resize do textarea - expande conforme conteúdo (estilo Claude/ChatGPT)
@@ -38,6 +39,13 @@ const ChatInput = ({ onSendMessage, onStopGeneration, isLoading, isStreaming }) 
 
     textarea.style.height = `${newHeight}px`;
   }, [input]);
+
+  // Reset do estado de cancelamento quando loading/streaming terminam
+  useEffect(() => {
+    if (!isLoading && !isStreaming) {
+      setIsCanceling(false);
+    }
+  }, [isLoading, isStreaming]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -56,15 +64,14 @@ const ChatInput = ({ onSendMessage, onStopGeneration, isLoading, isStreaming }) 
 
   const handleStop = (e) => {
     e.preventDefault();
+    setIsCanceling(true);
     onStopGeneration?.();
   };
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (!isStreaming) {
-        handleSubmit(e);
-      }
+      handleSubmit(e);
     }
   };
 
@@ -95,7 +102,7 @@ const ChatInput = ({ onSendMessage, onStopGeneration, isLoading, isStreaming }) 
         {/* Input principal */}
         <div
           className={`
-            relative bg-white dark:bg-dark-card rounded-xl sm:rounded-2xl
+            relative bg-white dark:bg-dark-card rounded-2xl sm:rounded-3xl
             border transition-all duration-300 ease-in-out
             shadow-md hover:shadow-lg
             ${isFocused
@@ -116,8 +123,8 @@ const ChatInput = ({ onSendMessage, onStopGeneration, isLoading, isStreaming }) 
             disabled={isLoading || isStreaming}
             rows={1}
             className="
-              w-full px-3 sm:px-4 py-2.5 sm:py-3 pr-16 sm:pr-20
-              bg-transparent rounded-xl sm:rounded-2xl
+              w-full px-4 sm:px-5 py-2.5 sm:py-3 pr-16 sm:pr-20
+              bg-transparent rounded-2xl sm:rounded-3xl
               outline-none focus:outline-none focus-visible:outline-none
               resize-none overflow-hidden
               disabled:opacity-50 disabled:cursor-not-allowed
@@ -135,7 +142,6 @@ const ChatInput = ({ onSendMessage, onStopGeneration, isLoading, isStreaming }) 
               border: 'none',
             }}
             aria-label="Campo de mensagem"
-            aria-describedby="input-help"
           />
 
           {/* Ações (contador + botão enviar) */}
@@ -157,35 +163,36 @@ const ChatInput = ({ onSendMessage, onStopGeneration, isLoading, isStreaming }) 
               </div>
             )}
 
-            {/* Botão com 3 estados: Enviar / Loading / Parar */}
-            {isStreaming ? (
-              /* Botão Parar - Ativo durante streaming */
+            {/* Botão com 3 estados: Enviar / Parar (durante loading ou streaming) */}
+            {(isStreaming || isLoading) ? (
+              /* Botão Parar - Ativo durante loading e streaming */
               <button
                 type="button"
                 onClick={handleStop}
-                className="
+                disabled={isCanceling}
+                className={`
                   relative overflow-hidden
                   p-2 sm:p-2.5
                   rounded-lg sm:rounded-xl
-                  font-medium text-white
+                  font-medium
                   transition-all duration-200 ease-out
                   flex items-center justify-center
                   min-w-[36px] min-h-[36px] sm:min-w-[40px] sm:min-h-[40px]
                   touch-manipulation
-                  bg-gradient-to-r from-red-600 to-red-500
-                  dark:from-red-500 dark:to-red-400
-                  hover:from-red-700 hover:to-red-600
-                  dark:hover:from-red-600 dark:hover:to-red-500
-                  hover:shadow-md hover:shadow-red-500/30
-                  dark:hover:shadow-red-900/50
-                  hover:scale-105 active:scale-95
-                  cursor-pointer
-                  animate-pulse-soft
-                "
-                title="Parar geração"
-                aria-label="Parar geração"
+                  ${isCanceling
+                    ? 'bg-gray-200 dark:bg-gray-700 cursor-not-allowed opacity-70'
+                    : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 hover:shadow-md hover:scale-105 active:scale-95 cursor-pointer'
+                  }
+                  text-gray-900 dark:text-gray-100
+                `}
+                title={isCanceling ? "Cancelando..." : "Parar geração"}
+                aria-label={isCanceling ? "Cancelando geração" : "Parar geração"}
               >
-                <Square className="w-4 h-4 fill-current" />
+                {isCanceling ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Square className="w-4 h-4 fill-current" />
+                )}
               </button>
             ) : (
               /* Botão Enviar / Loading */
@@ -224,31 +231,6 @@ const ChatInput = ({ onSendMessage, onStopGeneration, isLoading, isStreaming }) 
           </div>
         </div>
 
-        {/* Dicas de atalhos - Desktop (discreto) */}
-        <div
-          id="input-help"
-          className="hidden md:flex items-center justify-center gap-3 mt-3 text-xs text-gray-400 dark:text-gray-500 opacity-60"
-        >
-          <div className="flex items-center gap-1.5">
-            <kbd className="px-2 py-1 bg-gray-100 dark:bg-dark-hover border border-gray-300 dark:border-dark-border rounded-md text-xs font-medium text-gray-700 dark:text-gray-300 shadow-sm">
-              Enter
-            </kbd>
-            <span>enviar</span>
-          </div>
-
-          <span className="text-gray-300 dark:text-gray-600">•</span>
-
-          <div className="flex items-center gap-1.5">
-            <kbd className="px-2 py-1 bg-gray-100 dark:bg-dark-hover border border-gray-300 dark:border-dark-border rounded-md text-xs font-medium text-gray-700 dark:text-gray-300 shadow-sm">
-              Shift
-            </kbd>
-            <span>+</span>
-            <kbd className="px-2 py-1 bg-gray-100 dark:bg-dark-hover border border-gray-300 dark:border-dark-border rounded-md text-xs font-medium text-gray-700 dark:text-gray-300 shadow-sm">
-              Enter
-            </kbd>
-            <span>nova linha</span>
-          </div>
-        </div>
       </div>
     </form>
   );

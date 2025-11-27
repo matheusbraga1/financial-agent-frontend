@@ -15,6 +15,7 @@ export const useSmartScroll = (messages, isStreaming, containerRef, messagesEndR
 
   // Ref para rastrear última contagem de mensagens
   const lastMessageCountRef = useRef(messages.length);
+  const hasInitialScrolled = useRef(false);
 
   /**
    * Detecta se usuário scrollou manualmente
@@ -94,6 +95,25 @@ export const useSmartScroll = (messages, isStreaming, containerRef, messagesEndR
       });
     }
   }, [messages, isStreaming, autoScroll, userScrolled, messagesEndRef]);
+
+  /**
+   * Scroll inicial quando histórico é carregado
+   * Usa requestAnimationFrame + timeout para garantir que o DOM está renderizado
+   */
+  useEffect(() => {
+    if (messages.length > 0 && !hasInitialScrolled.current && !isStreaming) {
+      hasInitialScrolled.current = true;
+
+      // Aguarda o próximo frame + pequeno delay para garantir renderização completa
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          if (containerRef.current) {
+            containerRef.current.scrollTop = containerRef.current.scrollHeight;
+          }
+        }, 100);
+      });
+    }
+  }, [messages.length, isStreaming, containerRef]);
 
   return {
     handleScroll,

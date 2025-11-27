@@ -7,3 +7,4 @@ export { default as Tooltip } from './Tooltip/Tooltip';
 export { default as ErrorDisplay } from './ErrorDisplay/ErrorDisplay';
 export { Card } from './Card';
 export { LoadingSpinner } from './LoadingSpinner';
+export { UserAvatar } from './UserAvatar';

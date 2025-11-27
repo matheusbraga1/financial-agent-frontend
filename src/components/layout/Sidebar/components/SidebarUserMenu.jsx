@@ -2,7 +2,6 @@ import { memo, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import {
   LogOut,
-  User,
   LogIn,
   UserPlus,
   LayoutDashboard,
@@ -11,11 +10,14 @@ import {
   Sparkles,
   Loader2,
   FileText,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import SidebarTooltip from './SidebarTooltip';
-import { generateAvatarGradient, getAvatarInitial, getDisplayName } from '../../../../utils';
+import { getDisplayName } from '../../../../utils';
+import { useTheme } from '../../../../contexts';
+import { UserAvatar } from '../../../common';
 
 /**
  * Menu do usuário (autenticado ou guest)
@@ -40,6 +42,7 @@ const SidebarUserMenu = memo(
   }) => {
     const userMenuRef = useRef(null);
     const navigate = useNavigate();
+    const { isDark, toggleTheme } = useTheme();
 
     // Click outside to close
     useEffect(() => {
@@ -67,68 +70,44 @@ const SidebarUserMenu = memo(
       return (
         <div className="relative" ref={userMenuRef}>
           {/* User button */}
-          <SidebarTooltip
-            content={
-              <div>
-                <p className="font-semibold text-sm">{getDisplayName(user)}</p>
-                <p className="text-xs opacity-75">{user?.email}</p>
-              </div>
-            }
+          <motion.button
+            onClick={onToggleUserMenu}
+            whileTap={{ scale: 0.98 }}
+            transition={{ duration: 0.2 }}
+            className={`
+              flex items-center rounded-xl gap-3
+              transition-all duration-500 ease-in-out
+              py-2.5 overflow-hidden
+              ${isCollapsed ? 'w-10' : 'w-full'}
+              text-gray-700 dark:text-gray-300
+              hover:bg-gray-100 dark:hover:bg-dark-hover
+              ${showUserMenu ? 'bg-gray-100 dark:bg-dark-hover' : ''}
+              group relative
+              min-h-[44px]
+            `}
+            aria-label="Menu do usuário"
           >
-            <motion.button
-              onClick={onToggleUserMenu}
-              whileHover={{ scale: isCollapsed ? 1.05 : 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className={`
-                w-full flex items-center rounded-xl
-                transition-all duration-200
-                ${isCollapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2.5'}
-                text-gray-700 dark:text-gray-300
-                hover:bg-gradient-to-r hover:from-primary-50 hover:to-secondary-50
-                dark:hover:from-primary-900/10 dark:hover:to-secondary-900/10
-                hover:shadow-md
-                group relative
-                min-h-[44px]
-              `}
-              aria-label="Menu do usuário"
-            >
-              {/* Avatar com cor aleatória baseada no usuário */}
-              <div
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-white text-sm sm:text-base font-bold flex-shrink-0 shadow-lg ring-2 ring-white dark:ring-dark-card group-hover:scale-105 transition-transform"
-                style={{ background: generateAvatarGradient(user?.username || user?.email || 'U') }}
-              >
-                {getAvatarInitial(user)}
+            {/* Avatar do usuário */}
+            <UserAvatar
+              user={user}
+              size="lg"
+              className="shadow-lg ring-2 ring-white dark:ring-dark-card transition-transform duration-200 rounded-xl will-change-transform"
+            />
+
+            {/* User info (expandido) */}
+            <div className={`flex-1 text-left min-w-0 transition-all duration-500 ease-in-out ${isCollapsed ? 'w-0 opacity-0 -ml-3' : 'opacity-100'}`}>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                  {getDisplayName(user)}
+                </p>
+                {user?.is_admin && (
+                  <span className="px-1.5 py-0.5 bg-gradient-to-r from-secondary-500 to-secondary-600 text-white text-[9px] font-bold rounded uppercase tracking-wide shadow-sm">
+                    Admin
+                  </span>
+                )}
               </div>
-
-              {/* User info (expandido) */}
-              {!isCollapsed && (
-                <div className="flex-1 text-left min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                      {getDisplayName(user)}
-                    </p>
-                    {user?.is_admin && (
-                      <span className="px-1.5 py-0.5 bg-gradient-to-r from-secondary-500 to-secondary-600 text-white text-[9px] font-bold rounded uppercase tracking-wide shadow-sm">
-                        Admin
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
-                    {user?.email}
-                  </p>
-                </div>
-              )}
-
-              {/* Chevron (expandido) */}
-              {!isCollapsed && (
-                <ChevronRight
-                  className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
-                    showUserMenu ? 'rotate-90' : ''
-                  }`}
-                />
-              )}
-            </motion.button>
-          </SidebarTooltip>
+            </div>
+          </motion.button>
 
           {/* Dropdown menu (expandido) */}
           <AnimatePresence>
@@ -138,7 +117,7 @@ const SidebarUserMenu = memo(
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 5, scale: 0.98 }}
                 transition={{ duration: 0.15, ease: 'easeOut' }}
-                className="absolute bottom-full left-3 right-3 sm:left-4 sm:right-4 lg:left-3 lg:right-3 mb-3 bg-white dark:bg-dark-card rounded-xl shadow-2xl border border-gray-200 dark:border-dark-border py-2 z-50 overflow-hidden"
+                className="absolute bottom-full left-3 right-3 mb-3 bg-white dark:bg-dark-card rounded-xl shadow-2xl border border-gray-200 dark:border-dark-border py-2 z-50 overflow-hidden"
               >
                 {/* Admin badge */}
                 {user?.is_admin && (
@@ -153,45 +132,54 @@ const SidebarUserMenu = memo(
                 )}
 
                 {/* Dashboard */}
-                <motion.button
-                  whileHover={{ x: 4 }}
+                <button
                   onClick={() => handleNavigate('/dashboard')}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-hover transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-hover transition-colors"
                 >
                   <LayoutDashboard className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                   <span>Dashboard</span>
-                </motion.button>
+                </button>
 
                 {/* Documentos (apenas para admins) */}
                 {user?.is_admin && (
-                  <motion.button
-                    whileHover={{ x: 4 }}
+                  <button
                     onClick={() => handleNavigate('/documents')}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-hover transition-colors"
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-hover transition-colors"
                   >
                     <FileText className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                     <span>Documentos</span>
-                  </motion.button>
+                  </button>
                 )}
 
+                {/* Tema */}
+                <button
+                  onClick={toggleTheme}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-hover transition-colors"
+                >
+                  {isDark ? (
+                    <Sun className="w-4 h-4 text-yellow-500" />
+                  ) : (
+                    <Moon className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                  )}
+                  <span>{isDark ? 'Tema claro' : 'Tema escuro'}</span>
+                </button>
+
                 {/* Sobre */}
-                <motion.button
-                  whileHover={{ x: 4 }}
+                <button
                   onClick={() => {
                     onCloseUserMenu();
                     onOpenInfo();
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-hover transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-hover transition-colors"
                 >
                   <Info className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                   <span>Sobre</span>
-                </motion.button>
+                </button>
 
                 <div className="border-t border-gray-200 dark:border-dark-border my-2" />
 
                 {/* Logout */}
-                <motion.button
-                  whileHover={{ x: 4 }}
+                <button
                   onClick={onLogout}
                   disabled={isLoggingOut}
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -202,7 +190,7 @@ const SidebarUserMenu = memo(
                     <LogOut className="w-4 h-4" />
                   )}
                   <span>{isLoggingOut ? 'Saindo...' : 'Sair'}</span>
-                </motion.button>
+                </button>
               </motion.div>
             )}
           </AnimatePresence>
@@ -214,27 +202,31 @@ const SidebarUserMenu = memo(
     return (
       <div className="relative" ref={userMenuRef}>
         {/* Guest button */}
-        <SidebarTooltip content="Fazer login">
-          <motion.button
-            onClick={onToggleUserMenu}
-            whileHover={{ scale: isCollapsed ? 1.05 : 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className={`
-              w-full flex items-center rounded-xl transition-all duration-200
-              ${isCollapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2.5'}
-              text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-hover
-              group relative
-              min-h-[44px]
-            `}
-            aria-label="Login"
-          >
-            <div className="w-9 h-9 rounded-xl bg-gray-200 dark:bg-dark-hover flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-              <User className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-            </div>
+        <motion.button
+          onClick={onToggleUserMenu}
+          whileTap={{ scale: 0.98 }}
+          transition={{ duration: 0.2 }}
+          className={`
+            flex items-center rounded-xl gap-3 transition-all duration-500 ease-in-out
+            py-2.5 overflow-hidden
+            ${isCollapsed ? 'w-10' : 'w-full'}
+            text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-hover
+            ${showUserMenu ? 'bg-gray-100 dark:bg-dark-hover' : ''}
+            group relative
+            min-h-[44px]
+          `}
+          aria-label="Login"
+        >
+          <UserAvatar
+            user={null}
+            size="lg"
+            className="transition-transform duration-200 rounded-xl will-change-transform"
+          />
 
-            {!isCollapsed && <span className="text-sm font-medium">Fazer login</span>}
-          </motion.button>
-        </SidebarTooltip>
+          <span className={`text-sm font-medium transition-all duration-500 ease-in-out ${isCollapsed ? 'w-0 opacity-0 -ml-3' : 'w-auto opacity-100'}`}>
+            Fazer login
+          </span>
+        </motion.button>
 
         {/* Guest dropdown */}
         <AnimatePresence>
@@ -246,37 +238,47 @@ const SidebarUserMenu = memo(
               transition={{ duration: 0.15, ease: 'easeOut' }}
               className="absolute bottom-full left-3 right-3 mb-3 bg-white dark:bg-dark-card rounded-xl shadow-2xl border border-gray-200 dark:border-dark-border py-2 z-50"
             >
-              <motion.button
-                whileHover={{ x: 4 }}
+              <button
                 onClick={() => handleNavigate('/login')}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-hover transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-hover transition-colors"
               >
                 <LogIn className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                 <span>Fazer Login</span>
-              </motion.button>
+              </button>
 
-              <motion.button
-                whileHover={{ x: 4 }}
+              <button
                 onClick={() => handleNavigate('/register')}
                 className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"
               >
                 <UserPlus className="w-4 h-4" />
                 <span>Criar Conta</span>
-              </motion.button>
+              </button>
 
               <div className="border-t border-gray-200 dark:border-dark-border my-2" />
 
-              <motion.button
-                whileHover={{ x: 4 }}
+              {/* Tema */}
+              <button
+                onClick={toggleTheme}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-hover transition-colors"
+              >
+                {isDark ? (
+                  <Sun className="w-4 h-4 text-yellow-500" />
+                ) : (
+                  <Moon className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                )}
+                <span>{isDark ? 'Tema claro' : 'Tema escuro'}</span>
+              </button>
+
+              <button
                 onClick={() => {
                   onCloseUserMenu();
                   onOpenInfo();
                 }}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-hover transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-hover transition-colors"
               >
                 <Info className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                 <span>Sobre</span>
-              </motion.button>
+              </button>
             </motion.div>
           )}
         </AnimatePresence>

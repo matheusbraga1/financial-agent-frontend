@@ -8,7 +8,6 @@ import {
   adaptSessions,
   adaptStreamEvent,
   adaptChatResponse,
-  prepareFeedbackPayload,
 } from '../adapters/chatAdapter';
 
 /**
@@ -232,37 +231,6 @@ class ChatService {
       }
     } catch (e) {
       console.error('Erro ao parsear SSE:', e, 'Payload:', payload);
-    }
-  }
-
-  /**
-   * Envia feedback sobre uma mensagem
-   * @param {string} sessionId - ID da sessão
-   * @param {string} messageId - ID da mensagem
-   * @param {string} rating - 'positive', 'negative', 'positivo' ou 'negativo'
-   * @param {string|null} comment - Comentário opcional
-   * @returns {Promise<{message: string}>}
-   */
-  async sendFeedback(sessionId, messageId, rating, comment = null) {
-    try {
-      // Prepara payload usando adaptador (normaliza rating)
-      const payload = prepareFeedbackPayload(sessionId, messageId, rating, comment);
-
-      // Backend espera query parameters
-      const params = {
-        session_id: payload.session_id,
-        message_id: payload.message_id,
-        rating: payload.rating,
-      };
-
-      if (payload.comment) {
-        params.comment = payload.comment;
-      }
-
-      const response = await apiClient.post('/chat/feedback', null, { params });
-      return response.data;
-    } catch (error) {
-      throw handleApiError(error);
     }
   }
 

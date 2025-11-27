@@ -1,51 +1,62 @@
 import { FileText } from 'lucide-react';
+import PropTypes from 'prop-types';
 
 /**
- * SourcesList - Lista de fontes consultadas
- * Ícone com tooltip - não ocupa espaço vertical
+ * SourcesList - Exibição discreta de fonte consultada
+ *
+ * Design minimalista e profissional que mostra a primeira fonte
+ * de forma inline, sem modal, focando em UX clean.
+ *
+ * @component
+ * @param {Array} sources - Lista de fontes consultadas
  */
 const SourcesList = ({ sources }) => {
   if (!sources || sources.length === 0) return null;
 
-  return (
-    <div className="relative inline-block group/sources">
-      <button
-        type="button"
-        className="p-1.5 rounded-md text-gray-400 dark:text-gray-500 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-100 dark:hover:bg-dark-hover transition-colors"
-        aria-label={`${sources.length} fontes consultadas`}
-      >
-        <FileText className="w-3.5 h-3.5" />
-      </button>
+  const source = sources[0];
+  const documentName = source.document_name || source.title || 'Documento de base';
+  const relevanceScore = typeof source.relevance_score === 'number'
+    ? source.relevance_score
+    : null;
 
-      {/* Tooltip com fontes */}
-      <div className="absolute bottom-full left-0 mb-2 hidden group-hover/sources:block z-50 animate-fade-in">
-        <div className="bg-white dark:bg-dark-card border border-gray-200 dark:border-dark-border rounded-lg shadow-lg p-3 min-w-[200px] max-w-[300px]">
-          <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
-            Fontes consultadas
-          </p>
-          <div className="space-y-1.5">
-            {sources.map((source, index) => (
-              <div
-                key={source.id || index}
-                className="text-xs text-gray-700 dark:text-gray-300"
-              >
-                <span className="font-medium">
-                  {source.title || source.document_name || `Fonte ${index + 1}`}
-                </span>
-                {(source.score || source.relevance_score) && (
-                  <span className="text-gray-400 dark:text-gray-500 ml-1">
-                    ({((source.score || source.relevance_score) * 100).toFixed(0)}%)
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-        {/* Seta do tooltip */}
-        <div className="absolute left-3 -bottom-1 w-2 h-2 bg-white dark:bg-dark-card border-r border-b border-gray-200 dark:border-dark-border transform rotate-45" />
-      </div>
+  return (
+    <div
+      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-dark-hover/40 rounded-md border border-gray-200 dark:border-dark-border/60 transition-all duration-200 hover:bg-gray-100 dark:hover:bg-dark-hover/60 hover:border-gray-300 dark:hover:border-dark-border max-w-fit"
+      role="complementary"
+      aria-label="Fonte consultada"
+    >
+      <FileText className="w-3 h-3 flex-shrink-0 text-gray-400 dark:text-gray-500" aria-hidden="true" />
+
+      <span className="truncate max-w-[280px] sm:max-w-md font-medium" title={documentName}>
+        {documentName}
+      </span>
+
+      {relevanceScore !== null && (
+        <>
+          <span className="text-gray-300 dark:text-gray-600 select-none" aria-hidden="true">•</span>
+          <span className="text-gray-500 dark:text-gray-500 font-medium whitespace-nowrap tabular-nums">
+            {(relevanceScore * 100).toFixed(0)}%
+          </span>
+        </>
+      )}
     </div>
   );
+};
+
+SourcesList.propTypes = {
+  sources: PropTypes.arrayOf(
+    PropTypes.shape({
+      document_name: PropTypes.string,
+      title: PropTypes.string,
+      relevance_score: PropTypes.number,
+      page_number: PropTypes.number,
+      chunk_id: PropTypes.string,
+    })
+  ),
+};
+
+SourcesList.defaultProps = {
+  sources: [],
 };
 
 export default SourcesList;

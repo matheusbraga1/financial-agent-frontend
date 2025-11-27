@@ -219,6 +219,14 @@ export const adaptStreamEvent = (sseData) => {
         confidence: typeof data === 'number' ? data : null,
       };
 
+    case 'start':
+      return {
+        type: 'start',
+        session_id: data?.session_id || null,
+        model_used: data?.model_used || '',
+        timestamp: data?.timestamp || new Date().toISOString(),
+      };
+
     case 'metadata':
       if (typeof data !== 'object') return null;
       return {
@@ -232,65 +240,9 @@ export const adaptStreamEvent = (sseData) => {
       };
 
     default:
-      console.warn('Tipo de evento SSE desconhecido:', type);
-      return { type, data };
+      console.warn('Tipo de evento SSE desconhecido:', type, 'Data:', data);
+      return null;  // Retorna null para ser ignorado em streamManager
   }
-};
-
-/**
- * Prepara payload de feedback para enviar ao backend
- *
- * @param {string} sessionId
- * @param {string|number} messageId
- * @param {string} rating
- * @param {string|null} comment
- * @returns {Object} Payload formatado
- */
-export const prepareFeedbackPayload = (sessionId, messageId, rating, comment = null) => {
-  const normalizedRating = normalizeRating(rating);
-
-  if (!normalizedRating) {
-    throw new Error(`Rating inválido: ${rating}. Use 'positive', 'negative', 'positivo' ou 'negativo'`);
-  }
-
-  const payload = {
-    session_id: String(sessionId),
-    message_id: String(messageId),
-    rating: normalizedRating,
-  };
-
-  if (comment && typeof comment === 'string' && comment.trim()) {
-    payload.comment = comment.trim();
-  }
-
-  return payload;
-};
-
-/**
- * Normaliza rating para formato do backend
- *
- * @param {string} rating
- * @returns {string|null} 'positivo' ou 'negativo', ou null se inválido
- */
-const normalizeRating = (rating) => {
-  if (!rating || typeof rating !== 'string') {
-    return null;
-  }
-
-  const normalized = rating.toLowerCase().trim();
-
-  const positiveValues = ['positive', 'positivo', 'upvote', 'thumbs_up', 'good', 'bom'];
-  const negativeValues = ['negative', 'negativo', 'downvote', 'thumbs_down', 'bad', 'ruim'];
-
-  if (positiveValues.includes(normalized)) {
-    return 'positivo';
-  }
-
-  if (negativeValues.includes(normalized)) {
-    return 'negativo';
-  }
-
-  return null;
 };
 
 /**

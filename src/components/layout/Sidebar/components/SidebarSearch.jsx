@@ -127,11 +127,8 @@ const SidebarSearch = memo(
                 // Not authenticated
                 <div className="p-8 sm:p-12 text-center text-gray-500 dark:text-gray-400">
                   <MessageSquare className="w-12 h-12 sm:w-14 sm:h-14 mx-auto mb-4 opacity-30" />
-                  <p className="text-sm sm:text-base font-medium mb-2">
+                  <p className="text-sm sm:text-base font-medium">
                     Faça login para ver seu histórico
-                  </p>
-                  <p className="text-xs sm:text-sm opacity-75">
-                    Suas conversas são salvas automaticamente
                   </p>
                 </div>
               ) : hasQuery && resultsCount === 0 ? (

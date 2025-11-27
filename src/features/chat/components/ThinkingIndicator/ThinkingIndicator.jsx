@@ -1,59 +1,44 @@
 import { useState, useEffect } from 'react';
+import { Bot } from 'lucide-react';
+import { AGENT_NAME } from '../../constants/chatConstants';
 
 /**
  * ThinkingIndicator - Indicador de loading estilo Claude
  *
  * Mostra palavras que se alternam com efeito de digitação e cursor
  * Similar ao efeito do Claude AI durante geração de resposta
- * Cores alternadas: verde da marca e dourado
  */
-const ThinkingIndicator = () => {
+const ThinkingIndicator = ({ inline = false }) => {
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const [displayedText, setDisplayedText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Palavras que indicam o processo de geração
-  const words = [
-    'Pensando',
-    'Analisando',
-    'Processando',
-    'Escrevendo',
-  ];
-
-  // Cores alternadas: verde (primary) e dourado
-  const colors = [
-    'text-primary-600 dark:text-primary-400', // Verde
-    'text-amber-500 dark:text-amber-400',     // Dourado
-  ];
+  const words = ['Pensando', 'Analisando', 'Processando', 'Escrevendo'];
 
   useEffect(() => {
     const currentWord = words[currentWordIndex];
-    const typingSpeed = 50; // Velocidade de digitação
-    const deletingSpeed = 30; // Velocidade de apagar
-    const pauseTime = 1500; // Pausa quando palavra completa
+    const typingSpeed = 50;
+    const deletingSpeed = 30;
+    const pauseTime = 1500;
 
     let timeout;
 
     if (!isDeleting) {
-      // Digitando
       if (displayedText.length < currentWord.length) {
         timeout = setTimeout(() => {
           setDisplayedText(currentWord.substring(0, displayedText.length + 1));
         }, typingSpeed);
       } else {
-        // Palavra completa - pausa antes de apagar
         timeout = setTimeout(() => {
           setIsDeleting(true);
         }, pauseTime);
       }
     } else {
-      // Apagando
       if (displayedText.length > 0) {
         timeout = setTimeout(() => {
           setDisplayedText(displayedText.substring(0, displayedText.length - 1));
         }, deletingSpeed);
       } else {
-        // Palavra apagada - próxima palavra
         setIsDeleting(false);
         setCurrentWordIndex((prev) => (prev + 1) % words.length);
       }
@@ -62,18 +47,33 @@ const ThinkingIndicator = () => {
     return () => clearTimeout(timeout);
   }, [displayedText, isDeleting, currentWordIndex, words]);
 
-  // Cor atual baseada no índice da palavra
-  const currentColor = colors[currentWordIndex % colors.length];
-  const cursorColor = currentWordIndex % 2 === 0
-    ? 'bg-primary-500 dark:bg-primary-400'
-    : 'bg-amber-500 dark:bg-amber-400';
+  // Versão inline (para uso dentro de ChatMessage durante streaming)
+  if (inline) {
+    return (
+      <div className="inline-flex items-center">
+        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+          {displayedText}
+          <span className="inline-block w-0.5 h-4 bg-gray-500 dark:bg-gray-400 ml-0.5 animate-blink align-middle" />
+        </span>
+      </div>
+    );
+  }
 
+  // Versão completa (para uso no ChatInterface quando aguardando resposta)
   return (
-    <div className="inline-flex items-center">
-      <span className={`text-sm font-medium ${currentColor} transition-colors duration-300`}>
-        {displayedText}
-        <span className={`inline-block w-0.5 h-4 ${cursorColor} ml-0.5 animate-blink align-middle transition-colors duration-300`} />
-      </span>
+    <div className="group flex justify-start animate-fade-in w-full" role="status" aria-label="Agente está digitando">
+      <div className="w-full max-w-3xl">
+        <div className="flex items-center gap-2 mb-3 text-xs text-gray-500 dark:text-gray-400">
+          <Bot className="w-4 h-4" />
+          <span className="font-medium">{AGENT_NAME}</span>
+        </div>
+        <div className="inline-flex items-center">
+          <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+            {displayedText}
+            <span className="inline-block w-0.5 h-4 bg-gray-500 dark:bg-gray-400 ml-0.5 animate-blink align-middle" />
+          </span>
+        </div>
+      </div>
     </div>
   );
 };

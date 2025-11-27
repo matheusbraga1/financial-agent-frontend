@@ -7,17 +7,16 @@ import {
   ChatInput,
   EmptyState,
   ErrorMessage,
-  TypingIndicator,
   MessageSkeleton,
 } from './components';
 
 /**
  * Interface do Chat
- * 
- * Com rotas dinâmicas, este componente é REMONTADO quando sessionId muda
- * (via key no Chat.jsx), garantindo estado limpo.
+ *
+ * Com rotas dinâmicas, este componente é REMONTADO quando key muda em Chat.jsx.
+ * A key garante estado limpo ao trocar de conversa.
  */
-const ChatInterface = ({ sessionId, onSessionCreated, onFirstMessage }) => {
+const ChatInterface = ({ sessionId, greetingIndex = 0, userName = null, onSessionCreated, onFirstMessage }) => {
   const {
     messages,
     isLoading,
@@ -26,13 +25,12 @@ const ChatInterface = ({ sessionId, onSessionCreated, onFirstMessage }) => {
     error,
     sendMessage: sendMessageBase,
     stopGeneration,
-    sendFeedback,
     sessionId: currentSessionId
   } = useChat(true, sessionId);
 
   const messagesEndRef = useRef(null);
   const containerRef = useRef(null);
-  
+
   // Refs para callbacks
   const callbacksRef = useRef({ onSessionCreated, onFirstMessage });
   const hasNotifiedFirstMessage = useRef(false);
@@ -80,13 +78,6 @@ const ChatInterface = ({ sessionId, onSessionCreated, onFirstMessage }) => {
     sendMessageBase(question, callbacksRef.current.onSessionCreated);
   }, [sendMessageBase]);
 
-  /**
-   * Callback para feedback
-   */
-  const handleFeedback = useCallback(async (messageId, rating, comment) => {
-    return await sendFeedback(messageId, rating, comment);
-  }, [sendFeedback]);
-
   // Estados derivados
   const isEmpty = messages.length === 0 && !isLoading && !isLoadingHistory;
   const showSkeleton = isLoadingHistory && messages.length === 0;
@@ -107,11 +98,11 @@ const ChatInterface = ({ sessionId, onSessionCreated, onFirstMessage }) => {
   return (
     <div className="flex flex-col h-full min-h-screen bg-gray-50 dark:bg-dark-bg relative">
       {isEmpty ? (
-        /* Empty State - Centralizado */
+        /* Empty State - Centralizado (optical center) */
         <div className="flex flex-col h-full min-h-screen animate-fade-in">
           <div className="flex-1 flex items-center justify-center px-4 sm:px-6 py-8 overflow-y-auto">
-            <div className="flex flex-col items-center w-full max-w-2xl space-y-8 sm:space-y-10">
-              <EmptyState />
+            <div className="flex flex-col items-center w-full max-w-2xl space-y-8 sm:space-y-10 -mt-16 sm:-mt-20">
+              <EmptyState greetingIndex={greetingIndex} userName={userName} />
               <div className="w-full">
                 <ChatInput
                   onSendMessage={handleSendMessage}
@@ -131,7 +122,7 @@ const ChatInterface = ({ sessionId, onSessionCreated, onFirstMessage }) => {
             onScroll={handleScroll}
             className="flex-1 overflow-y-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 scroll-smooth animate-fade-in"
           >
-            <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8 pb-4">
+            <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8 pb-20 sm:pb-24">
               {messages.map((message, index) => {
                 const isLast = index === messages.length - 1 && message.type === 'assistant';
                 return (
@@ -139,14 +130,10 @@ const ChatInterface = ({ sessionId, onSessionCreated, onFirstMessage }) => {
                     key={message.id}
                     message={message}
                     isStreaming={isStreaming && isLast}
-                    onFeedback={handleFeedback}
+                    isLoading={isLoading && isLast}
                   />
                 );
               })}
-
-              {isLoading && (messages.length === 0 || messages[messages.length - 1]?.type !== 'assistant') && (
-                <TypingIndicator />
-              )}
 
               {error && <ErrorMessage message={error} />}
 
@@ -154,23 +141,24 @@ const ChatInterface = ({ sessionId, onSessionCreated, onFirstMessage }) => {
             </div>
           </div>
 
-          {showNewMessageBadge && (
-            <button
-              onClick={scrollToBottom}
-              className="fixed bottom-24 sm:bottom-28 right-6 sm:right-8 z-20 p-3 bg-white dark:bg-dark-card border-2 border-primary-500 dark:border-primary-400 rounded-full shadow-lg hover:shadow-xl hover:scale-110 active:scale-95 transition-all duration-200 group"
-              aria-label={`${newMessageCount} nova${newMessageCount > 1 ? 's' : ''} mensagem${newMessageCount > 1 ? 'ns' : ''}`}
-            >
-              {newMessageCount > 0 && (
-                <span className="absolute -top-2 -right-2 min-w-[24px] h-6 px-1.5 bg-primary-600 dark:bg-primary-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-md animate-bounce">
-                  {newMessageCount > 9 ? '9+' : newMessageCount}
-                </span>
+          {/* Input flutuante - fixo na parte inferior, considera sidebar em lg */}
+          <div className="fixed bottom-0 left-0 right-0 lg:left-72 z-30 pointer-events-none pb-safe">
+            <div className="max-w-4xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-5 md:py-6 pointer-events-auto relative">
+              {/* Botão de scroll centralizado acima do input */}
+              {showNewMessageBadge && (
+                <button
+                  onClick={scrollToBottom}
+                  className="absolute -top-10 left-1/2 -translate-x-1/2 z-40 p-2 bg-white dark:bg-dark-card border border-primary-500 dark:border-primary-400 rounded-full shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 group pointer-events-auto"
+                  aria-label={`${newMessageCount} nova${newMessageCount > 1 ? 's' : ''} mensagem${newMessageCount > 1 ? 'ns' : ''}`}
+                >
+                  {newMessageCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-primary-600 dark:bg-primary-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-sm">
+                      {newMessageCount > 9 ? '9+' : newMessageCount}
+                    </span>
+                  )}
+                  <ArrowDown className="w-4 h-4 text-primary-600 dark:text-primary-400 group-hover:translate-y-0.5 transition-transform" />
+                </button>
               )}
-              <ArrowDown className="w-5 h-5 text-primary-600 dark:text-primary-400 group-hover:translate-y-0.5 transition-transform" />
-            </button>
-          )}
-
-          <div className="flex-shrink-0 px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6 pb-safe">
-            <div className="max-w-4xl mx-auto">
               <ChatInput
                 onSendMessage={handleSendMessage}
                 onStopGeneration={stopGeneration}
@@ -187,12 +175,16 @@ const ChatInterface = ({ sessionId, onSessionCreated, onFirstMessage }) => {
 
 ChatInterface.propTypes = {
   sessionId: PropTypes.string,
+  greetingIndex: PropTypes.number,
+  userName: PropTypes.string,
   onSessionCreated: PropTypes.func,
   onFirstMessage: PropTypes.func,
 };
 
 ChatInterface.defaultProps = {
   sessionId: null,
+  greetingIndex: 0,
+  userName: null,
   onSessionCreated: null,
   onFirstMessage: null,
 };

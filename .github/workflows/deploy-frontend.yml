@@ -1,0 +1,241 @@
+name: Deploy Frontend to Production VM
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'package*.json'
+      - 'vite.config.js'
+      - 'Dockerfile'
+      - 'nginx/**'
+      - 'docker-compose.yml'
+      - '.github/workflows/deploy-frontend.yml'
+
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME: financial-agent-frontend
+  CONTAINER_NAME: financial-agent-frontend
+
+jobs:
+  lint-and-build:
+    name: Lint & Build Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Build application
+        env:
+          VITE_API_URL: http://192.168.1.150/api/v1
+          VITE_ENABLE_LOGS: false
+          VITE_APP_VERSION: ${{ github.sha }}
+        run: npm run build:prod
+
+      - name: Check build output
+        run: |
+          echo "Build completed successfully"
+          ls -lah dist/
+          du -sh dist/
+
+  deploy:
+    name: Deploy to Production VM
+    runs-on: ubuntu-latest
+    needs: lint-and-build
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add VM to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Create build context tarball
+        run: |
+          tar -czf app-context.tar.gz \
+            --exclude=node_modules \
+            --exclude=.git \
+            --exclude=dist \
+            --exclude=.env* \
+            .
+
+      - name: Copy files to VM
+        env:
+          VM_USER: ${{ secrets.VM_USER }}
+          VM_HOST: ${{ secrets.VM_HOST }}
+        run: |
+          scp app-context.tar.gz $VM_USER@$VM_HOST:/tmp/financial-agent-frontend.tar.gz
+
+      - name: Deploy on VM
+        env:
+          VM_USER: ${{ secrets.VM_USER }}
+          VM_HOST: ${{ secrets.VM_HOST }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          ssh $VM_USER@$VM_HOST << 'ENDSSH'
+            set -e
+
+            echo "=================================="
+            echo "Starting deployment..."
+            echo "=================================="
+
+            PROJECT_DIR="/opt/financial-agent/frontend"
+
+            sudo mkdir -p $PROJECT_DIR
+            sudo chown $USER:$USER $PROJECT_DIR
+
+            cd $PROJECT_DIR
+            tar -xzf /tmp/financial-agent-frontend.tar.gz
+            rm /tmp/financial-agent-frontend.tar.gz
+
+            echo "Building Docker image..."
+            docker build \
+              --build-arg VITE_API_URL=http://192.168.1.150/api/v1 \
+              --build-arg VITE_ENABLE_LOGS=false \
+              --build-arg VITE_APP_VERSION=$COMMIT_SHA \
+              -t financial-agent-frontend:latest \
+              -t financial-agent-frontend:$COMMIT_SHA \
+              .
+
+            echo "Stopping old container..."
+            docker stop financial-agent-frontend || true
+            docker rm financial-agent-frontend || true
+
+            echo "Starting new container..."
+            docker run -d \
+              --name financial-agent-frontend \
+              --network financial-agent-network \
+              -p 3000:3000 \
+              --restart unless-stopped \
+              financial-agent-frontend:latest
+
+            echo "Waiting for health check..."
+            sleep 10
+
+            for i in {1..12}; do
+              if docker exec financial-agent-frontend curl -f http://localhost:3000/health > /dev/null 2>&1; then
+                echo "✅ Health check passed!"
+                break
+              fi
+              echo "Attempt $i/12 - waiting..."
+              sleep 5
+
+              if [ $i -eq 12 ]; then
+                echo "❌ Health check failed!"
+                docker logs --tail 50 financial-agent-frontend
+                exit 1
+              fi
+            done
+
+            echo "Cleaning up old images..."
+            docker image prune -f
+
+            echo "=================================="
+            echo "Deployment completed successfully!"
+            echo "=================================="
+            docker ps | grep financial-agent-frontend
+
+          ENDSSH
+
+      - name: Verify deployment
+        env:
+          VM_USER: ${{ secrets.VM_USER }}
+          VM_HOST: ${{ secrets.VM_HOST }}
+        run: |
+          ssh $VM_USER@$VM_HOST << 'ENDSSH'
+            echo "Final verification:"
+            echo "==================="
+
+            if docker ps | grep -q financial-agent-frontend; then
+              echo "✅ Container is running"
+            else
+              echo "❌ Container is not running"
+              exit 1
+            fi
+
+            if curl -f http://localhost:3000/health > /dev/null 2>&1; then
+              echo "✅ Health check passed"
+            else
+              echo "❌ Health check failed"
+              exit 1
+            fi
+
+            echo ""
+            echo "Recent logs:"
+            docker logs --tail 30 financial-agent-frontend
+
+          ENDSSH
+
+      - name: Deployment summary
+        if: success()
+        run: |
+          echo "🚀 Deployment successful!"
+          echo "Frontend URL: http://192.168.1.150"
+          echo "Commit: ${{ github.sha }}"
+
+  rollback:
+    name: Rollback on Failure
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: failure()
+
+    steps:
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Rollback deployment
+        env:
+          VM_USER: ${{ secrets.VM_USER }}
+          VM_HOST: ${{ secrets.VM_HOST }}
+        run: |
+          ssh $VM_USER@$VM_HOST << 'ENDSSH'
+            echo "⚠️  Deployment failed, rolling back..."
+
+            docker stop financial-agent-frontend || true
+            docker rm financial-agent-frontend || true
+
+            PREVIOUS_IMAGE=$(docker images financial-agent-frontend --format "{{.ID}}" | sed -n '2p')
+
+            if [ -z "$PREVIOUS_IMAGE" ]; then
+              echo "❌ No previous image found for rollback"
+              exit 1
+            fi
+
+            echo "Rolling back to image: $PREVIOUS_IMAGE"
+
+            docker run -d \
+              --name financial-agent-frontend \
+              --network financial-agent-network \
+              -p 3000:3000 \
+              --restart unless-stopped \
+              $PREVIOUS_IMAGE
+
+            echo "✅ Rollback completed"
+            docker ps | grep financial-agent-frontend
+
+          ENDSSH

@@ -220,30 +220,42 @@ aside {
   box-shadow: 0 12px 24px -4px rgba(0, 0, 0, 0.1);
 }
 
-/* Scrollbar customizada para sidebar */
+/* Scrollbar customizada para sidebar - Professional ChatGPT-like */
+.sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+
 .sidebar-scroll::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
 }
 
 .sidebar-scroll::-webkit-scrollbar-track {
   background: transparent;
+  margin: 4px 0;
 }
 
 .sidebar-scroll::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 10px;
+  transition: background-color 0.2s ease;
 }
 
 .sidebar-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* Dark mode */
+.dark .sidebar-scroll {
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
 }
 
 .dark .sidebar-scroll::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .dark .sidebar-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.25);
 }
 
 /* Animação de brilho sutil em elementos ativos */

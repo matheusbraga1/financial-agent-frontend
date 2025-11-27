@@ -55,34 +55,6 @@ code {
   animation: fadeIn 0.3s ease-out;
 }
 
-/* Premium Sidebar Scroll */
-.sidebar-scroll::-webkit-scrollbar {
-  width: 6px;
-}
-
-.sidebar-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.sidebar-scroll::-webkit-scrollbar-thumb {
-  background: linear-gradient(to bottom, #00884f, #66c39f);
-  border-radius: 10px;
-  transition: all 0.3s ease;
-}
-
-.sidebar-scroll::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(to bottom, #006b3f, #00884f);
-  width: 8px;
-}
-
-/* Dark mode sidebar scroll */
-.dark .sidebar-scroll::-webkit-scrollbar-thumb {
-  background: linear-gradient(to bottom, #00aa63, #00884f);
-}
-
-.dark .sidebar-scroll::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(to bottom, #00bb70, #00aa63);
-}
 
 /* Utilities customizadas */
 @layer utilities {

@@ -10,6 +10,5 @@ export {
   adaptSession,
   adaptSessions,
   adaptStreamEvent,
-  prepareFeedbackPayload,
   logAdaptation,
 } from './chatAdapter';

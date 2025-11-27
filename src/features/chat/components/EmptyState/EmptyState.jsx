@@ -1,31 +1,66 @@
-import logo from '../../../../assets/img/financial-logo.png';
+import PropTypes from 'prop-types';
+
+/**
+ * Retorna saudação baseada no horário local
+ */
+const getTimeGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour >= 6 && hour < 12) return 'Bom dia';
+  if (hour >= 12 && hour < 18) return 'Boa tarde';
+  return 'Boa noite';
+};
+
+/**
+ * Gera lista de saudações, incluindo personalizadas se usuário logado
+ */
+const getGreetings = (userName) => {
+  const baseGreetings = [
+    'Como posso ajudar você hoje?',
+    'Em que posso ajudar?',
+    'O que gostaria de saber?',
+    'Como posso ser útil?',
+    'Qual é sua dúvida?',
+    'No que posso auxiliar?',
+  ];
+
+  if (!userName) return baseGreetings;
+
+  const timeGreeting = getTimeGreeting();
+  const firstName = userName.split(' ')[0];
+
+  const personalizedGreetings = [
+    `${timeGreeting}, ${firstName}!`,
+    `${timeGreeting}, ${firstName}! Como posso ajudar?`,
+    `Olá, ${firstName}! Em que posso ajudar?`,
+    `${firstName}, como posso ser útil hoje?`,
+  ];
+
+  return [...personalizedGreetings, ...baseGreetings];
+};
 
 /**
  * EmptyState estilo Claude - Minimalista e Mobile-First
- * - Logo ao lado esquerdo do título em telas >=360px
- * - Empilhamento vertical em telas muito pequenas (<360px)
+ * - Logo ao lado esquerdo do título
  * - Design limpo e profissional
  * - Responsivo para todos os tamanhos
+ * - Saudações personalizadas com nome e horário
  */
-const EmptyState = () => (
-  <div className="flex flex-col xs:flex-row items-center justify-center gap-3 xs:gap-4 md:gap-5 animate-fade-in px-4">
-    {/* Logo da empresa - estilo Claude */}
-    <div className="relative group flex-shrink-0">
-      <div className="absolute -inset-1 bg-gradient-to-r from-primary-500 to-primary-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-300"></div>
-      <div className="relative w-12 h-12 xs:w-14 xs:h-14 sm:w-16 sm:h-16 rounded-xl bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 p-2 xs:p-2.5 sm:p-3 shadow-lg ring-1 ring-gray-200 dark:ring-gray-700">
-        <img
-          src={logo}
-          alt="Financial Logo"
-          className="w-full h-full object-contain"
-        />
-      </div>
-    </div>
+const EmptyState = ({ greetingIndex = 0, userName = null }) => {
+  const greetings = getGreetings(userName);
+  const greeting = greetings[greetingIndex % greetings.length];
 
-    {/* Título principal - estilo Claude */}
-    <h1 className="text-lg xs:text-xl sm:text-2xl md:text-3xl lg:text-4xl font-normal text-gray-900 dark:text-gray-100 tracking-tight text-center xs:text-left">
-      Como posso ajudar você hoje?
-    </h1>
-  </div>
-);
+  return (
+    <div className="flex items-center justify-center animate-fade-in px-4">
+      <h1 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-normal text-gray-900 dark:text-gray-100 tracking-tight text-center">
+        {greeting}
+      </h1>
+    </div>
+  );
+};
+
+EmptyState.propTypes = {
+  greetingIndex: PropTypes.number,
+  userName: PropTypes.string,
+};
 
 export default EmptyState;
