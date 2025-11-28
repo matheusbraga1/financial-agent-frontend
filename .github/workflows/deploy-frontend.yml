@@ -1,4 +1,4 @@
-name: Deploy Frontend to Production VM
+name: CI/CD - Deploy Frontend to Production
 
 on:
   push:
@@ -16,226 +16,328 @@ on:
   workflow_dispatch:
 
 env:
+  DOCKER_BUILDKIT: 1
   IMAGE_NAME: financial-agent-frontend
   CONTAINER_NAME: financial-agent-frontend
 
 jobs:
-  lint-and-build:
-    name: Lint & Build Test
-    runs-on: ubuntu-latest
+  # ============================================================================
+  # Stage 1: Code Quality & Linting
+  # ============================================================================
+  lint:
+    name: Code Quality & Linting
+    runs-on: self-hosted
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
+      - name: Setup Node.js environment
+        run: |
+          # Verifica se Node.js 20 está instalado
+          if ! command -v node &> /dev/null || [[ "$(node -v)" != v20* ]]; then
+            echo "⚠️  Node.js 20 não encontrado. Por favor, instale Node.js 20."
+            exit 1
+          fi
+          echo "✅ Node.js $(node -v) encontrado"
+          echo "✅ npm $(npm -v) encontrado"
+
+      - name: Cache node_modules
+        id: cache-node-modules
+        run: |
+          CACHE_DIR="$HOME/.npm-cache/financial-agent-frontend"
+          mkdir -p "$CACHE_DIR"
+
+          if [ -d "node_modules" ]; then
+            echo "✅ node_modules já existe"
+            echo "cached=true" >> $GITHUB_OUTPUT
+          else
+            echo "📦 node_modules não existe, será instalado"
+            echo "cached=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Install dependencies
-        run: npm ci
+        if: steps.cache-node-modules.outputs.cached != 'true'
+        run: |
+          echo "📦 Installing dependencies..."
+          npm ci --prefer-offline --no-audit
 
       - name: Run ESLint
         run: npm run lint
         continue-on-error: true
 
-      - name: Build application
+      - name: Build test
         env:
           VITE_API_URL: http://192.168.1.150/api/v1
           VITE_ENABLE_LOGS: false
           VITE_APP_VERSION: ${{ github.sha }}
-        run: npm run build:prod
+        run: |
+          echo "🔨 Testing build..."
+          npm run build:prod
 
       - name: Check build output
         run: |
-          echo "Build completed successfully"
+          echo "✅ Build completed successfully"
           ls -lah dist/
           du -sh dist/
 
-  deploy:
-    name: Deploy to Production VM
-    runs-on: ubuntu-latest
-    needs: lint-and-build
+  # ============================================================================
+  # Stage 2: Build Docker Image
+  # ============================================================================
+  build:
+    name: Build Docker Image
+    runs-on: self-hosted
+    needs: lint
+
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-
-      - name: Add VM to known hosts
+      - name: Generate image metadata
+        id: meta
         run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -H ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          IMAGE_TAG="prod-${SHORT_SHA}-${TIMESTAMP}"
+          echo "tags=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+          echo "📦 Building image with tag: ${IMAGE_TAG}"
 
-      - name: Create build context tarball
-        run: |
-          tar -czf app-context.tar.gz \
-            --exclude=node_modules \
-            --exclude=.git \
-            --exclude=dist \
-            --exclude=.env* \
-            .
-
-      - name: Copy files to VM
+      - name: Build Docker image
         env:
-          VM_USER: ${{ secrets.VM_USER }}
-          VM_HOST: ${{ secrets.VM_HOST }}
-        run: |
-          scp app-context.tar.gz $VM_USER@$VM_HOST:/tmp/financial-agent-frontend.tar.gz
-
-      - name: Deploy on VM
-        env:
-          VM_USER: ${{ secrets.VM_USER }}
-          VM_HOST: ${{ secrets.VM_HOST }}
           COMMIT_SHA: ${{ github.sha }}
+          IMAGE_TAG: ${{ steps.meta.outputs.tags }}
         run: |
-          ssh $VM_USER@$VM_HOST << 'ENDSSH'
-            set -e
+          echo "🔨 Building Docker image..."
+          docker build \
+            --build-arg VITE_API_URL=http://192.168.1.150/api/v1 \
+            --build-arg VITE_ENABLE_LOGS=false \
+            --build-arg VITE_APP_VERSION=$COMMIT_SHA \
+            -t ${IMAGE_NAME}:${IMAGE_TAG} \
+            -t ${IMAGE_NAME}:latest \
+            -f Dockerfile .
 
-            echo "=================================="
-            echo "Starting deployment..."
-            echo "=================================="
+      - name: Verify image
+        run: |
+          echo "🔍 Verifying built image..."
+          docker images | grep ${IMAGE_NAME}
+          echo "✅ Image built successfully"
 
-            PROJECT_DIR="/opt/financial-agent/frontend"
+  # ============================================================================
+  # Stage 3: Deploy to Production
+  # ============================================================================
+  deploy:
+    name: Deploy to Production
+    runs-on: self-hosted
+    needs: build
+    environment: production
 
-            sudo mkdir -p $PROJECT_DIR
-            sudo chown $USER:$USER $PROJECT_DIR
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-            cd $PROJECT_DIR
-            tar -xzf /tmp/financial-agent-frontend.tar.gz
-            rm /tmp/financial-agent-frontend.tar.gz
+      - name: Backup current deployment
+        run: |
+          echo "📦 Creating backup of current deployment..."
 
-            echo "Building Docker image..."
-            docker build \
-              --build-arg VITE_API_URL=http://192.168.1.150/api/v1 \
-              --build-arg VITE_ENABLE_LOGS=false \
-              --build-arg VITE_APP_VERSION=$COMMIT_SHA \
-              -t financial-agent-frontend:latest \
-              -t financial-agent-frontend:$COMMIT_SHA \
-              .
+          # Backup da imagem atual se existir
+          if docker ps -a | grep -q ${CONTAINER_NAME}; then
+            CURRENT_IMAGE=$(docker inspect ${CONTAINER_NAME} --format='{{.Image}}')
+            docker tag $CURRENT_IMAGE ${IMAGE_NAME}:backup-$(date +%Y%m%d-%H%M%S) || true
+            echo "✅ Backup created"
+          else
+            echo "ℹ️  No previous deployment found"
+          fi
 
-            echo "Stopping old container..."
-            docker stop financial-agent-frontend || true
-            docker rm financial-agent-frontend || true
+      - name: Stop current container
+        run: |
+          echo "⏹️  Stopping current container..."
+          docker stop ${CONTAINER_NAME} || true
+          docker rm ${CONTAINER_NAME} || true
+          echo "✅ Container stopped"
 
-            echo "Starting new container..."
-            docker run -d \
-              --name financial-agent-frontend \
-              --network financial-agent-network \
-              -p 3000:3000 \
-              --restart unless-stopped \
-              financial-agent-frontend:latest
-
-            echo "Waiting for health check..."
-            sleep 10
-
-            for i in {1..12}; do
-              if docker exec financial-agent-frontend curl -f http://localhost:3000/health > /dev/null 2>&1; then
-                echo "✅ Health check passed!"
-                break
-              fi
-              echo "Attempt $i/12 - waiting..."
-              sleep 5
-
-              if [ $i -eq 12 ]; then
-                echo "❌ Health check failed!"
-                docker logs --tail 50 financial-agent-frontend
-                exit 1
-              fi
-            done
-
-            echo "Cleaning up old images..."
-            docker image prune -f
-
-            echo "=================================="
-            echo "Deployment completed successfully!"
-            echo "=================================="
-            docker ps | grep financial-agent-frontend
-
-          ENDSSH
-
-      - name: Verify deployment
+      - name: Start new container
         env:
-          VM_USER: ${{ secrets.VM_USER }}
-          VM_HOST: ${{ secrets.VM_HOST }}
+          IMAGE_TAG: ${{ needs.build.outputs.image_tag }}
         run: |
-          ssh $VM_USER@$VM_HOST << 'ENDSSH'
-            echo "Final verification:"
-            echo "==================="
+          echo "🚀 Starting new container..."
+          docker run -d \
+            --name ${CONTAINER_NAME} \
+            --network financial-agent-network \
+            -p 3000:3000 \
+            --restart unless-stopped \
+            --log-driver json-file \
+            --log-opt max-size=10m \
+            --log-opt max-file=3 \
+            ${IMAGE_NAME}:${IMAGE_TAG}
 
-            if docker ps | grep -q financial-agent-frontend; then
-              echo "✅ Container is running"
-            else
-              echo "❌ Container is not running"
-              exit 1
+          echo "✅ Container started"
+
+      - name: Wait for container to be ready
+        run: |
+          echo "⏳ Waiting for container to be ready..."
+          sleep 10
+
+      - name: Health check
+        run: |
+          echo "🏥 Running health checks..."
+
+          MAX_ATTEMPTS=12
+          ATTEMPT=0
+
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            if docker exec ${CONTAINER_NAME} curl -f http://localhost:3000/health > /dev/null 2>&1; then
+              echo "✅ Health check passed!"
+              break
             fi
 
-            if curl -f http://localhost:3000/health > /dev/null 2>&1; then
-              echo "✅ Health check passed"
-            else
-              echo "❌ Health check failed"
+            ATTEMPT=$((ATTEMPT + 1))
+            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS - waiting..."
+            sleep 5
+
+            if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+              echo "❌ Health check failed!"
+              echo "📋 Container logs:"
+              docker logs --tail 50 ${CONTAINER_NAME}
               exit 1
             fi
+          done
 
-            echo ""
-            echo "Recent logs:"
-            docker logs --tail 30 financial-agent-frontend
+      - name: Cleanup old images
+        run: |
+          echo "🧹 Cleaning up old images..."
+          # Mantém apenas as últimas 3 imagens tagged
+          docker images ${IMAGE_NAME} --format "{{.ID}} {{.Tag}}" | \
+            grep -v "latest\|backup" | \
+            tail -n +4 | \
+            awk '{print $1}' | \
+            xargs -r docker rmi -f || true
 
-          ENDSSH
+          # Remove imagens dangling
+          docker image prune -f
+          echo "✅ Cleanup completed"
+
+  # ============================================================================
+  # Stage 4: Post-Deploy Validation
+  # ============================================================================
+  validate:
+    name: Post-Deploy Validation
+    runs-on: self-hosted
+    needs: deploy
+
+    steps:
+      - name: Container status check
+        run: |
+          echo "🔍 Checking container status..."
+
+          if docker ps | grep -q ${CONTAINER_NAME}; then
+            echo "✅ Container is running"
+          else
+            echo "❌ Container is not running"
+            exit 1
+          fi
+
+      - name: Application health check
+        run: |
+          echo "🏥 Testing application health..."
+
+          response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/health)
+          if [ "$response" = "200" ]; then
+            echo "✅ Health endpoint returned 200"
+          else
+            echo "❌ Health check failed with status $response"
+            exit 1
+          fi
+
+      - name: Network connectivity check
+        run: |
+          echo "🌐 Testing network connectivity..."
+
+          # Verifica se consegue acessar a aplicação via rede
+          if curl -f http://192.168.1.150 > /dev/null 2>&1; then
+            echo "✅ Application accessible via network"
+          else
+            echo "⚠️  Application may not be accessible externally"
+          fi
 
       - name: Deployment summary
-        if: success()
         run: |
-          echo "🚀 Deployment successful!"
-          echo "Frontend URL: http://192.168.1.150"
-          echo "Commit: ${{ github.sha }}"
+          echo "=================================="
+          echo "✅ Deployment completed successfully!"
+          echo "=================================="
+          echo "📦 Container: ${CONTAINER_NAME}"
+          echo "🌐 URL: http://192.168.1.150"
+          echo "📝 Commit: ${{ github.sha }}"
+          echo ""
+          echo "📋 Container details:"
+          docker ps | grep ${CONTAINER_NAME}
 
+  # ============================================================================
+  # Rollback on Failure
+  # ============================================================================
   rollback:
     name: Rollback on Failure
-    runs-on: ubuntu-latest
-    needs: deploy
+    runs-on: self-hosted
+    needs: [deploy, validate]
     if: failure()
 
     steps:
-      - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-
-      - name: Rollback deployment
-        env:
-          VM_USER: ${{ secrets.VM_USER }}
-          VM_HOST: ${{ secrets.VM_HOST }}
+      - name: Stop failed deployment
         run: |
-          ssh $VM_USER@$VM_HOST << 'ENDSSH'
-            echo "⚠️  Deployment failed, rolling back..."
+          echo "⚠️  Deployment failed - initiating rollback..."
+          docker stop ${CONTAINER_NAME} || true
+          docker rm ${CONTAINER_NAME} || true
 
-            docker stop financial-agent-frontend || true
-            docker rm financial-agent-frontend || true
+      - name: Restore previous deployment
+        run: |
+          # Encontra a imagem de backup mais recente
+          BACKUP_IMAGE=$(docker images ${IMAGE_NAME} --format "{{.Repository}}:{{.Tag}}" | grep backup | head -n 1)
 
-            PREVIOUS_IMAGE=$(docker images financial-agent-frontend --format "{{.ID}}" | sed -n '2p')
+          if [ -z "$BACKUP_IMAGE" ]; then
+            echo "❌ No backup image found for rollback"
+
+            # Tenta usar a penúltima imagem tagged
+            PREVIOUS_IMAGE=$(docker images ${IMAGE_NAME} --format "{{.ID}}" | sed -n '2p')
 
             if [ -z "$PREVIOUS_IMAGE" ]; then
-              echo "❌ No previous image found for rollback"
+              echo "❌ No previous image found"
               exit 1
             fi
 
-            echo "Rolling back to image: $PREVIOUS_IMAGE"
+            echo "📦 Rolling back to previous image: $PREVIOUS_IMAGE"
+            BACKUP_IMAGE=$PREVIOUS_IMAGE
+          else
+            echo "📦 Rolling back to backup: $BACKUP_IMAGE"
+          fi
 
-            docker run -d \
-              --name financial-agent-frontend \
-              --network financial-agent-network \
-              -p 3000:3000 \
-              --restart unless-stopped \
-              $PREVIOUS_IMAGE
+          docker run -d \
+            --name ${CONTAINER_NAME} \
+            --network financial-agent-network \
+            -p 3000:3000 \
+            --restart unless-stopped \
+            $BACKUP_IMAGE
 
-            echo "✅ Rollback completed"
-            docker ps | grep financial-agent-frontend
+          echo "✅ Rollback completed"
 
-          ENDSSH
+      - name: Verify rollback
+        run: |
+          echo "🔍 Verifying rollback..."
+          sleep 10
+
+          if curl -f http://localhost:3000/health > /dev/null 2>&1; then
+            echo "✅ Rollback successful - application is healthy"
+          else
+            echo "❌ Rollback verification failed"
+            docker logs --tail 50 ${CONTAINER_NAME}
+            exit 1
+          fi
+
+      - name: Rollback notification
+        run: |
+          echo "=================================="
+          echo "⚠️  Deployment was rolled back"
+          echo "=================================="
+          echo "Check logs for failure details:"
+          docker logs --tail 100 ${CONTAINER_NAME}
