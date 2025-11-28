@@ -91,13 +91,36 @@ const Chat = () => {
    * Handler: Sessão criada pelo backend
    *
    * Chamado quando o backend retorna o sessionId real via SSE.
-   * Navega de /chat para /chat/sessionId após receber o ID.
+   * Navega de /chat para /chat/sessionId após receber o ID e
+   * notifica o histórico se for uma nova conversa.
    */
-  const handleSessionCreated = useCallback((sessionId) => {
+  const handleSessionCreated = useCallback((sessionId, firstMessage = null) => {
     if (!sessionId) return;
 
     // Se já está na URL correta, não faz nada
     if (urlSessionId === sessionId) return;
+
+    // Se é uma nova conversa (estava em /chat), notifica o histórico
+    if (!urlSessionId && firstMessage) {
+      // Evita duplicatas
+      if (!sessionFirstMessageRef.current.has(sessionId)) {
+        sessionFirstMessageRef.current.set(sessionId, firstMessage);
+
+        // Limpa sessões antigas (mantém últimas 50)
+        if (sessionFirstMessageRef.current.size > 50) {
+          const keys = Array.from(sessionFirstMessageRef.current.keys());
+          keys.slice(0, keys.length - 50).forEach(key => {
+            sessionFirstMessageRef.current.delete(key);
+          });
+        }
+
+        // Notifica sidebar
+        setNewSessionData({ sessionId, firstMessage });
+
+        // Limpa após animação
+        setTimeout(() => setNewSessionData(null), 3500);
+      }
+    }
 
     // Navega para a URL com sessionId (replace para não poluir histórico)
     // conversationKey permanece inalterado, não há remontagem do ChatInterface
@@ -106,32 +129,15 @@ const Chat = () => {
 
   /**
    * Handler: Captura primeira mensagem de nova sessão
-   * Notifica sidebar para adicionar ao histórico com efeito de digitação
+   * DEPRECADO: Agora handleSessionCreated gerencia isso
+   * Mantido para compatibilidade com ChatInterface
    */
   const handleFirstMessage = useCallback((sessionId, message) => {
+    // Armazena para uso posterior quando handleSessionCreated for chamado
     if (!sessionId || !message) return;
-    
-    // Evita duplicatas
-    if (sessionFirstMessageRef.current.has(sessionId)) {
-      return;
-    }
+    if (sessionFirstMessageRef.current.has(sessionId)) return;
 
-    // Registra
     sessionFirstMessageRef.current.set(sessionId, message);
-
-    // Limpa sessões antigas (mantém últimas 50)
-    if (sessionFirstMessageRef.current.size > 50) {
-      const keys = Array.from(sessionFirstMessageRef.current.keys());
-      keys.slice(0, keys.length - 50).forEach(key => {
-        sessionFirstMessageRef.current.delete(key);
-      });
-    }
-
-    // Notifica sidebar
-    setNewSessionData({ sessionId, firstMessage: message });
-
-    // Limpa após animação
-    setTimeout(() => setNewSessionData(null), 3500);
   }, []);
 
   /**

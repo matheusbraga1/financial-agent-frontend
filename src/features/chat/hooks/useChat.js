@@ -28,8 +28,9 @@ export const useChat = (useStreaming = true, initialSessionId = null) => {
 
   const { isAuthenticated } = useAuth();
 
-  // Session ID - inicializa com o da URL ou gera novo
-  const sessionIdRef = useRef(initialSessionId || generateId());
+  // Session ID - inicializa com o da URL ou null (será gerado no primeiro envio)
+  // Evita gerar ID temporário se já temos initialSessionId
+  const sessionIdRef = useRef(initialSessionId);
 
   // ID da mensagem do assistente atual (para sincronizar com stream global)
   const currentAssistantIdRef = useRef(null);
@@ -40,14 +41,11 @@ export const useChat = (useStreaming = true, initialSessionId = null) => {
   // Rastreia se já carregamos histórico para este sessionId
   const loadedSessionIdRef = useRef(null);
 
-  // Sincroniza sessionIdRef com initialSessionId
+  // Sincroniza sessionIdRef com initialSessionId quando URL muda
   useEffect(() => {
-    if (!initialSessionId) {
-      sessionIdRef.current = generateId();
-      console.debug('[useChat] Nova sessão iniciada:', sessionIdRef.current);
-    } else if (sessionIdRef.current !== initialSessionId) {
+    if (initialSessionId && sessionIdRef.current !== initialSessionId) {
       sessionIdRef.current = initialSessionId;
-      console.debug('[useChat] Sessão sincronizada:', sessionIdRef.current);
+      console.debug('[useChat] Sessão sincronizada com URL:', sessionIdRef.current);
     }
   }, [initialSessionId]);
 
@@ -260,11 +258,18 @@ export const useChat = (useStreaming = true, initialSessionId = null) => {
   const handleStreamingResponse = useCallback(async (question, assistantId) => {
     currentAssistantIdRef.current = assistantId;
 
+    // Se não tem session_id, o backend criará um novo
     const result = await streamManager.startStream(
       question,
-      sessionIdRef.current,
+      sessionIdRef.current || null,
       assistantId
     );
+
+    // Atualiza sessionIdRef com o ID retornado pelo backend
+    if (result.backendSessionId && !sessionIdRef.current) {
+      sessionIdRef.current = result.backendSessionId;
+      console.debug('[useChat] Session ID recebido do backend:', result.backendSessionId);
+    }
 
     return { assistantId, backendSessionId: result.backendSessionId };
   }, []);
@@ -306,6 +311,7 @@ export const useChat = (useStreaming = true, initialSessionId = null) => {
     setError(null);
 
     let assistantId = null;
+    const isFirstMessage = messages.length === 0;
 
     try {
       // Cria mensagem do assistente
@@ -315,14 +321,16 @@ export const useChat = (useStreaming = true, initialSessionId = null) => {
       if (useStreaming) {
         const result = await handleStreamingResponse(question, assistantId);
         // Notifica sobre o sessionId retornado pelo backend
+        // Passa também a primeira mensagem se for nova conversa
         if (!initialSessionId && result.backendSessionId) {
-          onSessionCreated?.(result.backendSessionId);
+          onSessionCreated?.(result.backendSessionId, isFirstMessage ? question : null);
         }
       } else {
         const newSessionId = await handleNormalResponse(assistantId, question, updateMessage);
         // Notifica sobre o sessionId retornado pelo backend
+        // Passa também a primeira mensagem se for nova conversa
         if (!initialSessionId && newSessionId) {
-          onSessionCreated?.(newSessionId);
+          onSessionCreated?.(newSessionId, isFirstMessage ? question : null);
         }
       }
     } catch (err) {
@@ -340,7 +348,7 @@ export const useChat = (useStreaming = true, initialSessionId = null) => {
         setIsStreaming(false);
       }
     }
-  }, [useStreaming, initialSessionId, addMessage, updateMessage, removeMessage, handleStreamingResponse, handleNormalResponse]);
+  }, [useStreaming, initialSessionId, messages.length, addMessage, updateMessage, removeMessage, handleStreamingResponse, handleNormalResponse]);
 
   /**
    * Limpa mensagens
