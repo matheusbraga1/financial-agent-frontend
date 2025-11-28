@@ -5,9 +5,9 @@ import { adaptStreamEvent } from '../adapters/chatAdapter';
 
 /**
  * Timeout de inatividade do stream (em ms)
- * Se não receber novos tokens por este período após ter metadata, finaliza o stream
+ * Se não receber novos tokens por este período, finaliza o stream
  */
-const STREAM_INACTIVITY_TIMEOUT = 3000; // 3 segundos
+const STREAM_INACTIVITY_TIMEOUT = 1500; // 1.5 segundos
 
 /**
  * StreamManager - Gerenciador Global de Streams
@@ -21,9 +21,9 @@ const STREAM_INACTIVITY_TIMEOUT = 3000; // 3 segundos
  * - Cancelamento apenas por ação explícita do usuário
  *
  * Sistema Híbrido de Finalização (3 camadas de segurança):
- * 1. Evento "done" do backend (ideal)
- * 2. Timeout de inatividade após metadata (3s sem novos tokens)
- * 3. Finalização quando reader termina
+ * 1. Evento "done" do backend (caminho ideal)
+ * 2. Timeout de inatividade (1.5s sem novos tokens - finaliza automaticamente)
+ * 3. Finalização quando reader termina (fallback final)
  */
 class StreamManager {
   constructor() {
@@ -222,7 +222,7 @@ class StreamManager {
       console.debug('[StreamManager] Stream finalizado, retornando sessionId:', backendSessionId);
       return { backendSessionId };
     } catch (error) {
-      return this._handleStreamError(sessionId, error, controller);
+      return this._handleStreamError(sessionId, error);
     } finally {
       clearTimeout(timeoutId);
       const state = this.activeStreams.get(sessionId);
@@ -320,15 +320,14 @@ class StreamManager {
           // Limpa timeout de inatividade anterior
           this._clearInactivityTimeout(sessionId);
 
-          // Cria novo timeout de inatividade (3s sem novos tokens)
+          // Cria novo timeout de inatividade (1.5s sem novos tokens)
           const inactivityTimeoutId = setTimeout(() => {
             const currentState = this.activeStreams.get(sessionId);
 
-            // Só finaliza se já recebeu metadata (confirmação do backend)
-            if (currentState?.hasMetadata) {
-              this._finalizeStream(sessionId, 'inactivity-after-metadata');
-            } else {
-              console.debug('[StreamManager] Stream inativo mas aguardando metadata:', sessionId);
+            // Finaliza se ainda estiver ativo (sem novos tokens por 1.5s)
+            if (currentState && (currentState.isStreaming || currentState.isLoading)) {
+              console.debug('[StreamManager] Stream inativo - finalizando automaticamente:', sessionId);
+              this._finalizeStream(sessionId, 'inactivity-timeout');
             }
           }, STREAM_INACTIVITY_TIMEOUT);
 
@@ -382,7 +381,7 @@ class StreamManager {
    * Trata erros do stream
    * @private
    */
-  _handleStreamError(sessionId, error, controller) {
+  _handleStreamError(sessionId, error) {
     // Se foi abortado manualmente pelo usuário
     if (error.name === 'AbortError') {
       this._updateStreamState(sessionId, {
@@ -471,7 +470,7 @@ class StreamManager {
    * Limpa todos os streams (logout, etc)
    */
   clearAll() {
-    for (const [sessionId, state] of this.activeStreams) {
+    for (const [_sessionId, state] of this.activeStreams) {
       if (state.timeoutId) {
         clearTimeout(state.timeoutId);
       }
