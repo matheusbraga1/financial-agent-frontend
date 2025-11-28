@@ -118,12 +118,7 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     try {
       // ✅ CORREÇÃO: Backend retorna ApiResponse[UserResponse]
-      const response = await authService.register(username, email, password);
-
-      // Extrai dados do wrapper se necessário
-      const registerData = isApiResponse(response)
-        ? extractData(response)
-        : response;
+      await authService.register(username, email, password);
 
       // Após registro bem-sucedido, faz login automaticamente
       const loginResult = await login(username, password);

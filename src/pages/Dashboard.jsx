@@ -33,7 +33,7 @@ const Dashboard = () => {
     setIsSidebarOpen(false);
   };
 
-  const handleSelectSession = (sessionId) => {
+  const handleSelectSession = (_sessionId) => {
     navigate('/chat');
     setIsSidebarOpen(false);
   };

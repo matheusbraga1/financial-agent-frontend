@@ -20,7 +20,7 @@ const SidebarSearch = memo(
     const [isLoadingSessions, setIsLoadingSessions] = useState(false);
     const inputRef = useRef(null);
 
-    const { query, setQuery, results, isSearching, hasQuery, clearSearch, resultsCount } =
+    const { query, setQuery, isSearching, hasQuery, clearSearch, resultsCount } =
       useSidebarSearch(sessions);
 
     // Carrega sessões quando abre
