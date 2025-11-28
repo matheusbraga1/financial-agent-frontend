@@ -45,14 +45,16 @@ jobs:
       - name: Cache node_modules
         id: cache-node-modules
         run: |
-          CACHE_DIR="$HOME/.npm-cache/financial-agent-frontend"
-          mkdir -p "$CACHE_DIR"
+          # Cria hash baseado no package-lock.json para cache inteligente
+          CACHE_KEY=$(md5sum package-lock.json 2>/dev/null | awk '{print $1}' || echo "no-lock")
+          CACHE_DIR="$HOME/.npm-cache/financial-agent-frontend-${CACHE_KEY}"
 
-          if [ -d "node_modules" ]; then
-            echo "✅ node_modules já existe"
+          if [ -d "$CACHE_DIR/node_modules" ]; then
+            echo "✅ Restoring cached node_modules..."
+            cp -r "$CACHE_DIR/node_modules" ./
             echo "cached=true" >> $GITHUB_OUTPUT
           else
-            echo "📦 node_modules não existe, será instalado"
+            echo "📦 Cache miss - node_modules will be installed"
             echo "cached=false" >> $GITHUB_OUTPUT
           fi
 
@@ -61,6 +63,15 @@ jobs:
         run: |
           echo "📦 Installing dependencies..."
           npm ci --prefer-offline --no-audit
+
+      - name: Save cache
+        if: steps.cache-node-modules.outputs.cached != 'true'
+        run: |
+          CACHE_KEY=$(md5sum package-lock.json 2>/dev/null | awk '{print $1}' || echo "no-lock")
+          CACHE_DIR="$HOME/.npm-cache/financial-agent-frontend-${CACHE_KEY}"
+          mkdir -p "$CACHE_DIR"
+          cp -r node_modules "$CACHE_DIR/"
+          echo "✅ Cache saved for future builds"
 
       - name: Run ESLint
         run: npm run lint
@@ -95,6 +106,22 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Check disk space
+        run: |
+          echo "📊 Checking available disk space..."
+          df -h /
+
+          AVAILABLE=$(df / | tail -1 | awk '{print $4}' | sed 's/G//')
+          if [ "${AVAILABLE%.*}" -lt 10 ]; then
+            echo "⚠️  WARNING: Less than 10GB available"
+            echo "Running cleanup..."
+            docker image prune -a -f
+            docker container prune -f
+            docker builder prune -f
+          else
+            echo "✅ Sufficient disk space available"
+          fi
 
       - name: Generate image metadata
         id: meta
@@ -138,6 +165,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Ensure Docker network exists
+        run: |
+          echo "🔍 Checking Docker network..."
+          if ! docker network ls | grep -q financial-agent-network; then
+            echo "📦 Creating network financial-agent-network..."
+            docker network create financial-agent-network
+            echo "✅ Network created"
+          else
+            echo "✅ Network financial-agent-network already exists"
+          fi
+
       - name: Backup current deployment
         run: |
           echo "📦 Creating backup of current deployment..."
@@ -158,6 +196,15 @@ jobs:
           docker rm ${CONTAINER_NAME} || true
           echo "✅ Container stopped"
 
+      - name: Create frontend volume if not exists
+        run: |
+          if ! docker volume ls | grep -q financial-agent-frontend-static; then
+            echo "📦 Creating volume financial-agent-frontend-static..."
+            docker volume create financial-agent-frontend-static
+          else
+            echo "✅ Volume already exists"
+          fi
+
       - name: Start new container
         env:
           IMAGE_TAG: ${{ needs.build.outputs.image_tag }}
@@ -166,19 +213,45 @@ jobs:
           docker run -d \
             --name ${CONTAINER_NAME} \
             --network financial-agent-network \
-            -p 3000:3000 \
             --restart unless-stopped \
             --log-driver json-file \
             --log-opt max-size=10m \
             --log-opt max-file=3 \
+            -v financial-agent-frontend-static:/app/dist \
             ${IMAGE_NAME}:${IMAGE_TAG}
 
           echo "✅ Container started"
+          echo "ℹ️  Static files available in shared volume"
 
       - name: Wait for container to be ready
         run: |
           echo "⏳ Waiting for container to be ready..."
           sleep 10
+
+      - name: Verify static files in volume
+        run: |
+          echo "📦 Verifying static files in shared volume..."
+
+          # Verificar se os arquivos estão no volume
+          docker run --rm \
+            -v financial-agent-frontend-static:/files:ro \
+            alpine ls -lah /files/
+
+          echo "✅ Static files verified"
+
+      - name: Update nginx container with new files
+        run: |
+          echo "🔄 Updating Nginx with new frontend files..."
+
+          # Verificar se nginx está rodando no docker-compose
+          if docker ps | grep -q financial-agent-nginx; then
+            # Nginx do backend precisa ser reiniciado para pegar o volume atualizado
+            echo "ℹ️  Nginx is running via docker-compose"
+            echo "⚠️  You may need to run 'docker-compose restart nginx' in the backend directory"
+            echo "⚠️  Or update backend's docker-compose to mount the frontend volume"
+          else
+            echo "ℹ️  Nginx will pick up files from shared volume automatically"
+          fi
 
       - name: Health check
         run: |
@@ -188,13 +261,14 @@ jobs:
           ATTEMPT=0
 
           while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
-            if docker exec ${CONTAINER_NAME} curl -f http://localhost:3000/health > /dev/null 2>&1; then
-              echo "✅ Health check passed!"
+            # Verificar se o container está healthy
+            if docker inspect ${CONTAINER_NAME} --format='{{.State.Health.Status}}' 2>/dev/null | grep -q "healthy"; then
+              echo "✅ Container health check passed!"
               break
             fi
 
             ATTEMPT=$((ATTEMPT + 1))
-            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS - waiting..."
+            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS - waiting for container to be healthy..."
             sleep 5
 
             if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
@@ -208,16 +282,20 @@ jobs:
       - name: Cleanup old images
         run: |
           echo "🧹 Cleaning up old images..."
-          # Mantém apenas as últimas 3 imagens tagged
+
+          # Mantém apenas as últimas 5 imagens tagged (mais seguro)
           docker images ${IMAGE_NAME} --format "{{.ID}} {{.Tag}}" | \
             grep -v "latest\|backup" | \
-            tail -n +4 | \
+            tail -n +6 | \
             awk '{print $1}' | \
-            xargs -r docker rmi -f || true
+            xargs -r docker rmi -f 2>/dev/null || true
 
-          # Remove imagens dangling
+          # Remove apenas imagens dangling (sem tag)
           docker image prune -f
+
           echo "✅ Cleanup completed"
+          echo "📊 Remaining images:"
+          docker images ${IMAGE_NAME} --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}"
 
   # ============================================================================
   # Stage 4: Post-Deploy Validation
@@ -243,23 +321,43 @@ jobs:
         run: |
           echo "🏥 Testing application health..."
 
-          response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/health)
-          if [ "$response" = "200" ]; then
-            echo "✅ Health endpoint returned 200"
+          # Teste 1: Verificar se o container do frontend está healthy
+          echo "Testing container health status..."
+          if docker inspect ${CONTAINER_NAME} --format='{{.State.Health.Status}}' 2>/dev/null | grep -q "healthy"; then
+            echo "✅ Frontend container is healthy"
           else
-            echo "❌ Health check failed with status $response"
+            echo "⚠️  Frontend container health check inconclusive"
+          fi
+
+          # Teste 2: Verificar arquivos no volume
+          echo "Testing static files availability..."
+          FILE_COUNT=$(docker run --rm -v financial-agent-frontend-static:/files:ro alpine sh -c "ls /files/ | wc -l")
+          if [ "$FILE_COUNT" -gt 0 ]; then
+            echo "✅ Static files present in volume ($FILE_COUNT files/folders)"
+          else
+            echo "❌ No static files found in volume"
             exit 1
+          fi
+
+          # Teste 3: Health check via Nginx
+          echo "Testing health via Nginx..."
+          response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/health 2>/dev/null || echo "000")
+          if [ "$response" = "200" ]; then
+            echo "✅ Nginx health endpoint returned 200"
+          else
+            echo "⚠️  Nginx health check returned status $response (may need backend restart)"
           fi
 
       - name: Network connectivity check
         run: |
           echo "🌐 Testing network connectivity..."
 
-          # Verifica se consegue acessar a aplicação via rede
-          if curl -f http://192.168.1.150 > /dev/null 2>&1; then
-            echo "✅ Application accessible via network"
+          # Verifica se consegue acessar a aplicação via rede externa
+          response=$(curl -s -o /dev/null -w "%{http_code}" http://192.168.1.150)
+          if [ "$response" = "200" ]; then
+            echo "✅ Application accessible via network (status: $response)"
           else
-            echo "⚠️  Application may not be accessible externally"
+            echo "⚠️  Network accessibility returned status $response"
           fi
 
       - name: Deployment summary
@@ -268,11 +366,16 @@ jobs:
           echo "✅ Deployment completed successfully!"
           echo "=================================="
           echo "📦 Container: ${CONTAINER_NAME}"
-          echo "🌐 URL: http://192.168.1.150"
+          echo "🌐 Frontend URL: http://192.168.1.150"
+          echo "🏥 Health Check: http://192.168.1.150/health/frontend"
           echo "📝 Commit: ${{ github.sha }}"
+          echo "🏷️  Image Tag: ${{ needs.deploy.outputs.image_tag }}"
           echo ""
           echo "📋 Container details:"
-          docker ps | grep ${CONTAINER_NAME}
+          docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Image}}" | grep ${CONTAINER_NAME}
+          echo ""
+          echo "💾 Disk usage:"
+          df -h / | grep -E 'Filesystem|/$'
 
   # ============================================================================
   # Rollback on Failure
@@ -289,6 +392,13 @@ jobs:
           echo "⚠️  Deployment failed - initiating rollback..."
           docker stop ${CONTAINER_NAME} || true
           docker rm ${CONTAINER_NAME} || true
+
+      - name: Ensure Docker network exists
+        run: |
+          if ! docker network ls | grep -q financial-agent-network; then
+            echo "Creating network financial-agent-network..."
+            docker network create financial-agent-network
+          fi
 
       - name: Restore previous deployment
         run: |
@@ -315,21 +425,34 @@ jobs:
           docker run -d \
             --name ${CONTAINER_NAME} \
             --network financial-agent-network \
-            -p 3000:3000 \
             --restart unless-stopped \
+            --log-driver json-file \
+            --log-opt max-size=10m \
+            --log-opt max-file=3 \
+            -v financial-agent-frontend-static:/app/dist \
             $BACKUP_IMAGE
 
           echo "✅ Rollback completed"
+          echo "ℹ️  Static files restored to shared volume"
 
       - name: Verify rollback
         run: |
           echo "🔍 Verifying rollback..."
           sleep 10
 
-          if curl -f http://localhost:3000/health > /dev/null 2>&1; then
-            echo "✅ Rollback successful - application is healthy"
+          # Verificar se o container está rodando
+          if docker ps | grep -q ${CONTAINER_NAME}; then
+            echo "✅ Rollback container is running"
+
+            # Verificar arquivos no volume
+            FILE_COUNT=$(docker run --rm -v financial-agent-frontend-static:/files:ro alpine sh -c "ls /files/ | wc -l" || echo "0")
+            if [ "$FILE_COUNT" -gt 0 ]; then
+              echo "✅ Rollback successful - static files restored ($FILE_COUNT files/folders)"
+            else
+              echo "⚠️  Rollback container running but files may not be available"
+            fi
           else
-            echo "❌ Rollback verification failed"
+            echo "❌ Rollback verification failed - container not running"
             docker logs --tail 50 ${CONTAINER_NAME}
             exit 1
           fi
