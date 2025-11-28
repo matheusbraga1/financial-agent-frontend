@@ -303,6 +303,9 @@ export const useChat = (useStreaming = true, initialSessionId = null) => {
     abortControllerRef.current?.abort();
     abortControllerRef.current = new AbortController();
 
+    // IMPORTANTE: Verificar ANTES de adicionar mensagens
+    const isFirstMessage = messages.length === 0;
+
     const userMessage = createUserMessage(question);
     addMessage(userMessage);
 
@@ -311,7 +314,6 @@ export const useChat = (useStreaming = true, initialSessionId = null) => {
     setError(null);
 
     let assistantId = null;
-    const isFirstMessage = messages.length === 0;
 
     try {
       // Cria mensagem do assistente
