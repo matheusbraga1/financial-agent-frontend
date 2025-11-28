@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, memo, useMemo, useCallback } from 'react';
+import { memo } from 'react';
 import PropTypes from 'prop-types';
 import { Bot, Copy, Check } from 'lucide-react';
 import { useMessageActions } from '../../hooks';
