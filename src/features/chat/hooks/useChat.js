@@ -42,8 +42,9 @@ export const useChat = (useStreaming = true, initialSessionId = null) => {
   const loadedSessionIdRef = useRef(null);
 
   // Sincroniza sessionIdRef com initialSessionId quando URL muda
+  // IMPORTANTE: Sempre sincronizar, mesmo quando initialSessionId é null (nova conversa)
   useEffect(() => {
-    if (initialSessionId && sessionIdRef.current !== initialSessionId) {
+    if (sessionIdRef.current !== initialSessionId) {
       sessionIdRef.current = initialSessionId;
       console.debug('[useChat] Sessão sincronizada com URL:', sessionIdRef.current);
     }
