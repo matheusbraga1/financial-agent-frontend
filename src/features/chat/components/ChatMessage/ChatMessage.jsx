@@ -268,12 +268,7 @@ const ChatMessage = memo(({ message, isStreaming = false, isLoading = false }) =
                     {message.content}
                   </span>
                 ) : (
-                  <>
-                    {renderMarkdownContent(message.content)}
-                    {isStreaming && (
-                      <span className="inline-block w-1.5 h-5 bg-primary-600 dark:bg-primary-500 ml-0.5 animate-blink align-middle transition-all duration-150" />
-                    )}
-                  </>
+                  renderMarkdownContent(message.content)
                 )}
               </>
             ) : (isLoading || isStreaming) ? (

@@ -4,6 +4,12 @@ import { CHAT_ERRORS, NETWORK_ERRORS } from '../../../constants/errorMessages';
 import { adaptStreamEvent } from '../adapters/chatAdapter';
 
 /**
+ * Timeout de inatividade do stream (em ms)
+ * Se não receber novos tokens por este período após ter metadata, finaliza o stream
+ */
+const STREAM_INACTIVITY_TIMEOUT = 3000; // 3 segundos
+
+/**
  * StreamManager - Gerenciador Global de Streams
  *
  * Singleton que mantém streams ativos mesmo quando componentes são desmontados.
@@ -13,6 +19,11 @@ import { adaptStreamEvent } from '../adapters/chatAdapter';
  * - Streams continuam em background quando usuário navega
  * - Tokens são acumulados e disponibilizados ao reconectar
  * - Cancelamento apenas por ação explícita do usuário
+ *
+ * Sistema Híbrido de Finalização (3 camadas de segurança):
+ * 1. Evento "done" do backend (ideal)
+ * 2. Timeout de inatividade após metadata (3s sem novos tokens)
+ * 3. Finalização quando reader termina
  */
 class StreamManager {
   constructor() {
@@ -40,6 +51,10 @@ class StreamManager {
       timeoutId: null,
       messageId: null,
       backendSessionId: null,
+      // Campos para timeout inteligente de inatividade
+      lastTokenTime: null,
+      inactivityTimeoutId: null,
+      hasMetadata: false,
     };
   }
 
@@ -96,6 +111,33 @@ class StreamManager {
     this.activeStreams.set(sessionId, newState);
     this._notifyListeners(sessionId, newState);
     return newState;
+  }
+
+  /**
+   * Limpa timeout de inatividade de forma segura
+   * @private
+   */
+  _clearInactivityTimeout(sessionId) {
+    const state = this.activeStreams.get(sessionId);
+    if (state?.inactivityTimeoutId) {
+      clearTimeout(state.inactivityTimeoutId);
+      this._updateStreamState(sessionId, { inactivityTimeoutId: null });
+    }
+  }
+
+  /**
+   * Finaliza stream de forma segura, limpando todos os timeouts
+   * @private
+   */
+  _finalizeStream(sessionId, reason = 'unknown') {
+    console.debug(`[StreamManager] Finalizando stream (${reason}):`, sessionId);
+
+    this._clearInactivityTimeout(sessionId);
+
+    this._updateStreamState(sessionId, {
+      isStreaming: false,
+      isLoading: false,
+    });
   }
 
   /**
@@ -207,10 +249,8 @@ class StreamManager {
         const { done, value } = await reader.read();
 
         if (done) {
-          this._updateStreamState(sessionId, {
-            isStreaming: false,
-            isLoading: false,
-          });
+          // Reader finalizado - caminho alternativo se "done" event não chegar
+          this._finalizeStream(sessionId, 'reader-done');
           break;
         }
 
@@ -277,7 +317,26 @@ class StreamManager {
           const isFirstToken = !state.content;
           const newContent = state.content + (data.content ?? '');
 
-          const updates = { content: newContent };
+          // Limpa timeout de inatividade anterior
+          this._clearInactivityTimeout(sessionId);
+
+          // Cria novo timeout de inatividade (3s sem novos tokens)
+          const inactivityTimeoutId = setTimeout(() => {
+            const currentState = this.activeStreams.get(sessionId);
+
+            // Só finaliza se já recebeu metadata (confirmação do backend)
+            if (currentState?.hasMetadata) {
+              this._finalizeStream(sessionId, 'inactivity-after-metadata');
+            } else {
+              console.debug('[StreamManager] Stream inativo mas aguardando metadata:', sessionId);
+            }
+          }, STREAM_INACTIVITY_TIMEOUT);
+
+          const updates = {
+            content: newContent,
+            lastTokenTime: Date.now(),
+            inactivityTimeoutId,
+          };
 
           if (isFirstToken) {
             updates.isLoading = false;
@@ -288,22 +347,30 @@ class StreamManager {
           break;
         }
 
-        case 'metadata':
-          const metaUpdates = { modelUsed: data.model_used };
+        case 'metadata': {
+          const metaUpdates = {
+            modelUsed: data.model_used,
+            hasMetadata: true, // Marca que metadata foi recebida
+          };
+
           if (data.session_id) {
             metaUpdates.backendSessionId = data.session_id;
           }
+
           if (typeof data.confidence === 'number') {
             metaUpdates.confidence = data.confidence;
           }
+
           this._updateStreamState(sessionId, metaUpdates);
+
+          // Não finaliza aqui - deixa o timeout de inatividade decidir
+          // Isso permite que tokens atrasados ainda sejam processados
           break;
+        }
 
         case 'done':
-          this._updateStreamState(sessionId, {
-            isStreaming: false,
-            isLoading: false,
-          });
+          // Evento "done" oficial do backend - caminho ideal
+          this._finalizeStream(sessionId, 'done-event');
           break;
       }
     } catch (e) {
@@ -370,6 +437,9 @@ class StreamManager {
       clearTimeout(state.timeoutId);
     }
 
+    // Limpa timeout de inatividade
+    this._clearInactivityTimeout(sessionId);
+
     if (state.controller) {
       state.controller.abort();
     }
@@ -404,6 +474,10 @@ class StreamManager {
     for (const [sessionId, state] of this.activeStreams) {
       if (state.timeoutId) {
         clearTimeout(state.timeoutId);
+      }
+      // Limpa timeout de inatividade
+      if (state.inactivityTimeoutId) {
+        clearTimeout(state.inactivityTimeoutId);
       }
       if (state.controller) {
         state.controller.abort();
