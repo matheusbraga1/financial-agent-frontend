@@ -1,4 +1,4 @@
-import { useReducer, useCallback, useMemo } from 'react';
+import { useReducer, useMemo } from 'react';
 
 /**
  * Estado inicial da sidebar
@@ -16,7 +16,7 @@ const getInitialState = () => ({
  */
 const sidebarReducer = (state, action) => {
   switch (action.type) {
-    case 'TOGGLE_COLLAPSE':
+    case 'TOGGLE_COLLAPSE': {
       const newCollapsed = !state.isCollapsed;
       localStorage.setItem('sidebar:collapsed', newCollapsed ? '1' : '0');
       return {
@@ -24,6 +24,7 @@ const sidebarReducer = (state, action) => {
         isCollapsed: newCollapsed,
         showUserMenu: false, // Fecha menu ao colapsar
       };
+    }
 
     case 'OPEN_INFO':
       return {

@@ -30,7 +30,6 @@ const Sidebar = ({
   const { user, logout, isAuthenticated } = useAuth();
   const { isDesktop } = useBreakpoints();
   const navigate = useNavigate();
-  const location = useLocation();
 
   /**
    * Nova conversa - navega para /chat
