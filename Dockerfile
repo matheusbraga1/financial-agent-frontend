@@ -39,18 +39,35 @@ FROM alpine:3.19
 
 WORKDIR /app
 
-# Instalar apenas o necessário para health checks
-RUN apk add --no-cache curl
+# Instalar rsync para copiar arquivos eficientemente
+RUN apk add --no-cache curl rsync
 
-# Copiar arquivos buildados
-COPY --from=builder /app/dist /app/dist
+# Copiar arquivos buildados para diretório temporário (não será sobrescrito pelo volume)
+COPY --from=builder /app/dist /app/dist-build
+
+# Criar script de inicialização que copia arquivos para o volume montado
+RUN echo '#!/bin/sh' > /app/init.sh && \
+    echo 'echo "📦 Copying new frontend files to shared volume..."' >> /app/init.sh && \
+    echo 'echo "Source: /app/dist-build/"' >> /app/init.sh && \
+    echo 'echo "Target: /app/dist/"' >> /app/init.sh && \
+    echo '' >> /app/init.sh && \
+    echo '# Copy files from build to volume (delete old files)' >> /app/init.sh && \
+    echo 'rsync -av --delete /app/dist-build/ /app/dist/' >> /app/init.sh && \
+    echo '' >> /app/init.sh && \
+    echo 'echo "✅ Frontend files updated in volume"' >> /app/init.sh && \
+    echo 'echo "📂 Volume contents:"' >> /app/init.sh && \
+    echo 'ls -lah /app/dist/' >> /app/init.sh && \
+    echo '' >> /app/init.sh && \
+    echo 'echo "🔄 Container ready - keeping alive..."' >> /app/init.sh && \
+    echo 'tail -f /dev/null' >> /app/init.sh && \
+    chmod +x /app/init.sh
 
 # Criar health check endpoint simples
 RUN echo '#!/bin/sh' > /app/health.sh && \
     echo 'if [ -f /app/dist/index.html ]; then exit 0; else exit 1; fi' >> /app/health.sh && \
     chmod +x /app/health.sh
 
-# Health check: verifica se os arquivos existem
+# Health check: verifica se os arquivos existem no volume
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD /app/health.sh
 
@@ -59,5 +76,5 @@ LABEL maintainer="Financial Agent Team"
 LABEL description="Frontend static files for Financial Agent"
 LABEL version="1.0.0"
 
-# Container fica rodando aguardando o volume ser montado pelo nginx
-CMD ["tail", "-f", "/dev/null"]
+# Usar script de inicialização que copia arquivos para o volume
+CMD ["/app/init.sh"]
